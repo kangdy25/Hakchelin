@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리학교 식탁 v8 - 학생용</title>
+<style>
+  body { font-family: 'Pretendard', sans-serif; background-color: #f2f4f7; margin: 0; padding: 0; display: flex; justify-content: center; color: #333; }
+  .app-screen { width: 100%; max-width: 420px; background: white; min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+  
+  /* 헤더: 프로필 및 포인트 정보 */
+  .header { background: #2E7D32; color: white; padding: 25px 20px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+  .user-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+  .user-name { font-size: 20px; font-weight: bold; margin: 0; }
+  .user-id { font-size: 13px; opacity: 0.8; }
+  
+  .point-card { background: rgba(255,255,255,1); color: #2E7D32; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+  .point-val { font-size: 18px; font-weight: 900; }
+  .charge-btn { background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
+
+  .content { padding: 15px 20px; }
+  
+  /* 운영 정책 알림 */
+  .policy-box { background: #FFF3E0; border-radius: 10px; padding: 12px; margin-bottom: 15px; font-size: 12px; color: #E65100; border: 1px solid #FFE0B2; }
+
+  /* 요일 선택 */
+  .day-selector { display: flex; justify-content: space-between; background: #f8f9fa; padding: 5px; border-radius: 10px; margin-bottom: 15px; }
+  .day-btn { flex: 1; border: none; background: none; padding: 10px 0; font-size: 13px; cursor: pointer; border-radius: 8px; color: #777; font-weight: bold;}
+  .day-btn.active { background: #2E7D32; color: white; }
+
+  /* 메뉴 카드 */
+  .menu-card { border: 1px solid #eee; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .menu-tag { font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 5px; display: inline-block; }
+  .tag-a { background: #E8F5E9; color: #2E7D32; }
+  .tag-b { background: #E3F2FD; color: #1565C0; }
+  .tag-c { background: #FCE4EC; color: #C2185B; }
+  
+  .menu-title { font-size: 16px; font-weight: bold; margin: 5px 0; }
+  .menu-price { color: #2E7D32; font-weight: bold; font-size: 14px; }
+  
+  .option-select { width: 100%; padding: 8px; margin-top: 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; background: #fafafa; }
+
+  .reserve-btn { width: 100%; background: #2E7D32; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px; }
+
+  .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 420px; background: white; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #eee; }
+  .nav-item { text-align: center; color: #999; font-size: 11px; }
+  .nav-item.active { color: #2E7D32; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="app-screen">
+  <div class="header">
+    <div class="user-info">
+      <div>
+        <p class="user-name">김철수 학생님</p>
+        <p class="user-id">학번: 202412345 (컴퓨터공학)</p>
+      </div>
+      <button class="charge-btn" style="background:none; border:1px solid white;">EN</button>
+    </div>
+    <div class="point-card">
+      <div>내 포인트: <span class="point-val" id="my-point">12,500</span> P</div>
+      <button class="charge-btn" onclick="chargePoint()">+ 충전하기</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="policy-box">
+      📍 <b>점심 전용 (11:30~13:30)</b> 운영<br>
+      📍 사전예약: 4,500P / 현장결제: 5,500P<br>
+      📍 미취식 시 예약금 1,000P 제외 자동 환불
+    </div>
+
+    <div class="day-selector">
+      <button class="day-btn active" onclick="showMenu('mon', this)">월</button>
+      <button class="day-btn" onclick="showMenu('tue', this)">화</button>
+      <button class="day-btn" onclick="showMenu('wed', this)">수</button>
+      <button class="day-btn" onclick="showMenu('thu', this)">목</button>
+      <button class="day-btn" onclick="showMenu('fri', this)">금</button>
+    </div>
+
+    <div id="menu-list">
+      </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active">🏠<br>식단/예약</div>
+    <div class="nav-item">🎫<br>내 식권</div>
+    <div class="nav-item">💳<br>충전내역</div>
+    <div class="nav-item">👤<br>마이페이지</div>
+  </div>
+</div>
+
+<script>
+  const dailyMenus = {
+    mon: [{t:"tag-a", n:"A. 매콤 제육 쌈밥 정식"}, {t:"tag-b", n:"B. 단짠 간장 돼지 덮밥"}, {t:"tag-c", n:"C. 바베큐 샌드위치 팩"}],
+    tue: [{t:"tag-a", n:"A. 춘천식 닭갈비 정식"}, {t:"tag-b", n:"B. 치킨 마요 덮밥"}, {t:"tag-c", n:"C. 리코타 치즈 샐러드"}],
+    wed: [{t:"tag-a", n:"A. 수제 등심 돈까스"}, {t:"tag-b", n:"B. 꼬치어묵 우동"}, {t:"tag-c", n:"C. 삼각김밥&라면 세트"}],
+    thu: [{t:"tag-a", n:"A. 소불고기 버섯 전골"}, {t:"tag-b", n:"B. 나물 비빔밥"}, {t:"tag-c", n:"C. 불고기 베이크 빵"}],
+    fri: [{t:"tag-a", n:"A. 매콤 오징어 볶음"}, {t:"tag-b", n:"B. 얼큰 해물 짬뽕"}, {t:"tag-c", n:"C. 크래미 샌드위치 팩"}]
+  };
+
+  function showMenu(day, btn) {
+    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const container = document.getElementById('menu-list');
+    container.innerHTML = '';
+    
+    dailyMenus[day].forEach(m => {
+      container.innerHTML += `
+        <div class="menu-card">
+          <span class="menu-tag ${m.t}">${m.t === 'tag-a' ? '한식' : m.t === 'tag-b' ? '일품' : '포장'}</span>
+          <div class="menu-title">${m.n}</div>
+          <div class="menu-price">4,500P (사전예약 혜택가)</div>
+          <select class="option-select">
+            <option>🍚 밥 양: 기본</option>
+            <option>🍚 밥 양: 적게 (잔반 제로 참여)</option>
+            <option>🍚 밥 양: 많이</option>
+          </select>
+          <button class="reserve-btn" onclick="reserve()">예약 및 결제하기</button>
+        </div>
+      `;
+    });
+  }
+
+  function chargePoint() {
+    const amount = prompt("충전할 금액을 입력하세요 (예: 10000)");
+    if(amount) {
+      let current = parseInt(document.getElementById('my-point').innerText.replace(',',''));
+      document.getElementById('my-point').innerText = (current + parseInt(amount)).toLocaleString();
+      alert(amount + "포인트가 충전되었습니다.");
+    }
+  }
+
+  function reserve() {
+    if(confirm("예약하시겠습니까? 4,500포인트가 차감됩니다.")) {
+      alert("예약이 완료되었습니다! 마이페이지 식권을 확인하세요.");
+    }
+  }
+
+  showMenu('mon', document.querySelector('.day-btn.active'));
+</script>
+</body>
+</html>
