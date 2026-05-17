@@ -5,6 +5,8 @@ export default {
   "welcome": "Welcome, {name}!",
   "point": "My Balance",
   "charge": "+ Top-up",
+  "logout": "Logout",
+  "student_id": "Student ID: ",
   "policy": [
     "📍 Lunch Only (11:30~13:30)",
     "📍 Pre-order: 4,500P / Walk-in: 5,500P",

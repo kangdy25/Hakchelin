@@ -4,6 +4,8 @@ export default {
   "user_major": "컴퓨터공학",
   "welcome": "{name}님 환영합니다!",
   "point": "내 포인트",
+  "logout": "로그아웃",
+  "student_id": "학번: ",
   "charge": "+ 충전하기",
   "policy": [
     "📍 점심 전용 (11:30~13:30) 운영",

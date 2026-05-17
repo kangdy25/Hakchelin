@@ -48,5 +48,9 @@ export default {
   "coming_soon": "준비 중인 페이지입니다.",
   "empty_tickets": "보유 중인 식권이 없습니다.",
   "empty_history": "충전 내역이 없습니다.",
-  "empty_profile": "프로필 설정 기능은 준비 중입니다."
+  "empty_profile": "프로필 설정 기능은 준비 중입니다.",
+  "student": "학생",
+  "student_id": "학번:",
+  "logout": "로그아웃",
+  "logout_error": "로그아웃 중 오류가 발생했습니다."
 }

@@ -48,5 +48,9 @@ export default {
   "coming_soon": "Page coming soon.",
   "empty_tickets": "You have no active tickets.",
   "empty_history": "Your transaction history will appear here.",
-  "empty_profile": "Profile settings will be available soon."
+  "empty_profile": "Profile settings will be available soon.",
+  "student": "Student",
+  "student_id": "Student ID:",
+  "logout": "Logout",
+  "logout_error": "An error occurred during logout."
 }
