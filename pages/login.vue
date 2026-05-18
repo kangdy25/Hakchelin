@@ -6,6 +6,7 @@ definePageMeta({
 })
 
 const supabase = useSupabaseClient()
+const authUser = useSupabaseUser()
 const isLoginMode = ref(true)
 const email = ref('')
 const password = ref('')
@@ -31,7 +32,10 @@ const handleSubmit = async () => {
         password: password.value,
       })
       if (error) throw error
-      navigateTo('/')
+
+      const { data: claimsData } = await supabase.auth.getClaims()
+      authUser.value = claimsData?.claims ?? null
+      await navigateTo('/', { replace: true })
     } else {
       // Signup
       const { error } = await supabase.auth.signUp({

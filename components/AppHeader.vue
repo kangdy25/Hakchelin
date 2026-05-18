@@ -5,28 +5,44 @@ const toggleLanguage = async () => {
   await setLocale(locale.value === 'ko' ? 'en' : 'ko')
 }
 
-const supabase = useSupabaseClient()
-const authUser = useSupabaseUser()
-const userData = ref({ name: '학생', student_id: '', current_point: 0 })
+const supabase = useSupabaseClient<any>()
+const { profile: userData, userId, refreshProfile, adjustPoint } = useUserProfile()
 
-onMounted(async () => {
-  if (authUser.value) {
-    // DB에서 최신 포인트 및 정보 가져오기
-    const { data } = await supabase
-      .from('users')
-      .select('name, student_id, current_point')
-      .eq('id', authUser.value.id)
-      .single()
-      
-    if (data) {
-      userData.value = data
-    } else {
-      // DB fetch 실패 시 Auth 메타데이터 사용
-      userData.value.name = authUser.value.user_metadata?.name || '학생'
-      userData.value.student_id = authUser.value.user_metadata?.student_id || ''
-    }
+const isCharging = ref(false)
+
+const handleCharge = async () => {
+  if (!userId.value) {
+    alert('사용자 정보를 불러올 수 없습니다. 새로고침 후 다시 시도해주세요.')
+    return
   }
-})
+
+  const amountStr = prompt('충전할 포인트 금액을 입력하세요 (예: 10000):', '10000')
+  if (!amountStr) return
+
+  const amount = parseInt(amountStr, 10)
+  if (isNaN(amount) || amount <= 0) {
+    alert('올바른 금액을 입력해주세요.')
+    return
+  }
+
+  isCharging.value = true
+  try {
+    const { error } = await supabase.rpc('charge_point', {
+      p_user_id: userId.value,
+      p_amount: amount
+    })
+
+    if (error) throw error
+
+    alert(`${amount.toLocaleString()}P가 성공적으로 충전되었습니다!`)
+    adjustPoint(amount)
+    await refreshProfile()
+  } catch (err: any) {
+    alert('충전 중 오류가 발생했습니다: ' + err.message)
+  } finally {
+    isCharging.value = false
+  }
+}
 </script>
 
 <template>
@@ -60,8 +76,12 @@ onMounted(async () => {
         <span class="text-[14px]">{{ t('point') }}</span>: 
         <b class="text-[18px] ml-1">{{ userData.current_point.toLocaleString() }} P</b>
       </div>
-      <button class="bg-[#4CAF50] text-white border-none py-[6px] px-[12px] rounded-[6px] font-bold cursor-pointer text-[12px]">
-        {{ t('charge') }}
+      <button 
+        @click="handleCharge"
+        :disabled="isCharging"
+        class="bg-[#4CAF50] text-white border-none py-[6px] px-[12px] rounded-[6px] font-bold cursor-pointer text-[12px] disabled:opacity-50"
+      >
+        {{ isCharging ? '처리중...' : t('charge') }}
       </button>
     </div>
   </header>

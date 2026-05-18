@@ -9,7 +9,8 @@ const props = defineProps<{
     title_ko: string
     title_en: string
     price: number
-  }
+  },
+  disabled?: boolean
 }>()
 
 const emit = defineEmits(['reserve'])
@@ -27,6 +28,8 @@ const title = computed(() => locale.value === 'ko' ? props.menu.title_ko : props
 const finalPrice = computed(() => props.menu.price + (selectedMain.value === 1 ? 1000 : 0))
 
 const handleReserve = () => {
+  if (props.disabled) return
+
   if (confirm(t('alert'))) {
     emit('reserve', { 
       menu_id: props.menu.id, 
@@ -63,7 +66,11 @@ const handleReserve = () => {
         <option :value="1">{{ t('optMain1') }}</option>
       </select>
       
-      <button @click="handleReserve" class="w-full bg-[#2E7D32] text-white border-none p-[14px] rounded-[8px] font-bold cursor-pointer mt-[15px] text-[15px]">
+      <button
+        @click="handleReserve"
+        :disabled="disabled"
+        class="w-full bg-[#2E7D32] text-white border-none p-[14px] rounded-[8px] font-bold cursor-pointer mt-[15px] text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         {{ t('reserve') }}
       </button>
     </div>
