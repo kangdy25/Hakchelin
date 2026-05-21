@@ -26,11 +26,11 @@ const loading = ref(true)
 const errorMessage = ref('')
 const reservations = ref<Reservation[]>([])
 
-const statusLabel: Record<string, string> = {
-  reserved: '예약완료',
-  used: '사용완료',
-  cancelled: '취소됨'
-}
+const statusLabel = computed(() => ({
+  reserved: t('status.reserved'),
+  used: t('status.used'),
+  cancelled: t('status.cancelled')
+}))
 
 const statusClass: Record<string, string> = {
   reserved: 'bg-[#E8F5E9] text-[#2E7D32]',
@@ -59,7 +59,7 @@ const formatDate = (value: string) => {
 }
 
 const menuTitle = (reservation: Reservation) => {
-  if (!reservation.menus) return '삭제된 메뉴'
+  if (!reservation.menus) return t('payment.deleted_menu')
   return locale.value === 'ko' ? reservation.menus.title_ko : reservation.menus.title_en
 }
 
@@ -122,7 +122,7 @@ watch(
 
     <div v-if="loading" class="bg-white rounded-[15px] p-8 text-center border border-[#eee]">
       <div class="animate-spin rounded-full h-10 w-10 border-4 border-[#4ade80] border-t-transparent mx-auto mb-4"></div>
-      <p class="text-sm text-gray-500">식권을 불러오고 있습니다.</p>
+      <p class="text-sm text-gray-500">{{ t('payment.loading_tickets') }}</p>
     </div>
 
     <div v-else-if="errorMessage" class="bg-red-50 text-red-600 rounded-[15px] p-5 border border-red-100 text-sm font-bold">
@@ -152,17 +152,17 @@ watch(
 
         <div class="grid grid-cols-2 gap-2 mb-4">
           <div class="bg-[#f8f9fa] rounded-[8px] p-3">
-            <div class="text-[11px] text-[#777] mb-1">밥 옵션</div>
+            <div class="text-[11px] text-[#777] mb-1">{{ t('options.rice') }}</div>
             <div class="text-[13px] font-bold text-gray-800">{{ riceLabel(reservation.options?.rice) }}</div>
           </div>
           <div class="bg-[#f8f9fa] rounded-[8px] p-3">
-            <div class="text-[11px] text-[#777] mb-1">메인 옵션</div>
+            <div class="text-[11px] text-[#777] mb-1">{{ t('options.main') }}</div>
             <div class="text-[13px] font-bold text-gray-800">{{ mainLabel(reservation.options?.main) }}</div>
           </div>
         </div>
 
         <div class="flex items-center justify-between border-t border-[#eee] pt-4">
-          <span class="text-[12px] text-[#777] font-bold">결제 포인트</span>
+          <span class="text-[12px] text-[#777] font-bold">{{ t('payment.total') }}</span>
           <strong class="text-[#2E7D32] text-[18px]">{{ reservation.total_price.toLocaleString() }}P</strong>
         </div>
       </article>

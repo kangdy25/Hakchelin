@@ -4,8 +4,6 @@ export default {
   "user_major": "컴퓨터공학",
   "welcome": "{name}님 환영합니다!",
   "point": "내 포인트",
-  "logout": "로그아웃",
-  "student_id": "학번: ",
   "charge": "+ 충전하기",
   "policy": [
     "📍 점심 전용 (11:30~13:30) 운영",
@@ -45,10 +43,34 @@ export default {
     "takeout": "포장"
   },
   "my_tickets": "내 식권",
-  "point_history": "충전내역",
+  "point_history": "포인트 내역",
   "my_profile": "마이페이지",
   "coming_soon": "준비 중인 페이지입니다.",
   "empty_tickets": "보유 중인 식권이 없습니다.",
-  "empty_history": "충전 내역이 없습니다.",
-  "empty_profile": "프로필 설정 기능은 준비 중입니다."
+  "empty_history": "포인트 내역이 없습니다.",
+  "empty_profile": "프로필 설정 기능은 준비 중입니다.",
+  "student": "학생",
+  "student_id": "학번:",
+  "logout": "로그아웃",
+  "logout_error": "로그아웃 중 오류가 발생했습니다.",
+  "status": {
+    "reserved": "예약완료",
+    "used": "사용완료",
+    "cancelled": "취소됨"
+  },
+  "options": {
+    "rice": "밥 옵션",
+    "main": "메인 옵션"
+  },
+  "payment": {
+    "total": "결제 포인트",
+    "charge": "포인트 충전",
+    "use": "포인트 사용",
+    "complete": "결제완료",
+    "used": "사용완료",
+    "loading_tickets": "식권을 불러오고 있습니다.",
+    "loading_history": "내역을 불러오고 있습니다.",
+    "deleted_menu": "삭제된 메뉴",
+    "unit": "P"
+  }
 }

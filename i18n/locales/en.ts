@@ -5,8 +5,6 @@ export default {
   "welcome": "Welcome, {name}!",
   "point": "My Balance",
   "charge": "+ Top-up",
-  "logout": "Logout",
-  "student_id": "Student ID: ",
   "policy": [
     "📍 Lunch Only (11:30~13:30)",
     "📍 Pre-order: 4,500P / Walk-in: 5,500P",
@@ -49,6 +47,30 @@ export default {
   "my_profile": "My Profile",
   "coming_soon": "Page coming soon.",
   "empty_tickets": "You have no active tickets.",
-  "empty_history": "Your transaction history will appear here.",
-  "empty_profile": "Profile settings will be available soon."
+  "empty_history": "No point history found.",
+  "empty_profile": "Profile settings will be available soon.",
+  "student": "Student",
+  "student_id": "Student ID:",
+  "logout": "Logout",
+  "logout_error": "An error occurred during logout.",
+  "status": {
+    "reserved": "Reserved",
+    "used": "Used",
+    "cancelled": "Cancelled"
+  },
+  "options": {
+    "rice": "Rice Option",
+    "main": "Main Option"
+  },
+  "payment": {
+    "total": "Payment Points",
+    "charge": "Point Top-up",
+    "use": "Point Usage",
+    "complete": "Paid",
+    "used": "Used",
+    "loading_tickets": "Loading tickets...",
+    "loading_history": "Loading history...",
+    "deleted_menu": "Deleted Menu",
+    "unit": "P"
+  }
 }
