@@ -3,6 +3,12 @@ export default defineNuxtConfig({
 
   devtools: { enabled: true },
 
+  runtimeConfig: {
+    public: {
+      tossPaymentsClientKey: process.env.NUXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY || ''
+    }
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@nuxtjs/supabase',
