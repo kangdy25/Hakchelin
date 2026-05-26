@@ -43,6 +43,7 @@ export default {
     "takeout": "포장"
   },
   "my_tickets": "내 식권",
+  "hide_cancelled": "취소된 식권 숨기기",
   "point_history": "포인트 내역",
   "my_profile": "마이페이지",
   "coming_soon": "준비 중인 페이지입니다.",
@@ -71,6 +72,10 @@ export default {
     "loading_tickets": "식권을 불러오고 있습니다.",
     "loading_history": "내역을 불러오고 있습니다.",
     "deleted_menu": "삭제된 메뉴",
-    "unit": "P"
+    "unit": "P",
+    "cancel_btn": "예약 취소",
+    "cancel_confirm": "예약을 취소하시겠습니까? 결제된 포인트가 환불됩니다.",
+    "cancel_success": "예약이 취소되었으며, 포인트가 환불되었습니다.",
+    "cancel_error": "예약 취소 중 오류가 발생했습니다."
   }
 }

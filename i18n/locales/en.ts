@@ -43,6 +43,7 @@ export default {
     "takeout": "Take-out"
   },
   "my_tickets": "My Tickets",
+  "hide_cancelled": "Hide cancelled tickets",
   "point_history": "Point History",
   "my_profile": "My Profile",
   "coming_soon": "Page coming soon.",
@@ -71,6 +72,10 @@ export default {
     "loading_tickets": "Loading tickets...",
     "loading_history": "Loading history...",
     "deleted_menu": "Deleted Menu",
-    "unit": "P"
+    "unit": "P",
+    "cancel_btn": "Cancel Reservation",
+    "cancel_confirm": "Are you sure you want to cancel this reservation? The points will be refunded.",
+    "cancel_success": "Your reservation has been cancelled, and points have been refunded.",
+    "cancel_error": "An error occurred while cancelling your reservation."
   }
 }

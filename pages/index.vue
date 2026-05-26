@@ -109,7 +109,7 @@ const onReserve = async (payload: any) => {
       <button 
         v-for="day in days" :key="day"
         @click="selectedDay = day"
-        class="flex-1 border-none bg-transparent py-[10px] text-[13px] rounded-[8px] text-[#777] font-bold cursor-pointer transition-colors"
+        class="flex-1 border-none bg-transparent py-[10px] text-[16px] rounded-[8px] text-[#777] font-bold cursor-pointer transition-colors"
         :class="{ 'bg-[#b2fab4] text-black': selectedDay === day }"
       >
         <span>{{ t(`days.${day}`) }}</span>
