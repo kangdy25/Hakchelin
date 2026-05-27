@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n({ useScope: 'global' })
 const user = useSupabaseUser()
+const { isAdmin } = useUserProfile()
 </script>
 
 <template>
@@ -18,6 +19,10 @@ const user = useSupabaseUser()
       <NuxtLink to="/history" class="flex flex-col items-center text-[#999] text-[11px]" active-class="!text-[#2E7D32] font-bold">
         <span class="text-xl mb-1">💳</span>
         <span>{{ t('nav2') }}</span>
+      </NuxtLink>
+      <NuxtLink v-if="isAdmin" to="/admin" class="flex flex-col items-center text-[#999] text-[11px]" active-class="!text-[#2E7D32] font-bold">
+        <span class="text-xl mb-1">🛠️</span>
+        <span>{{ t('nav_admin') }}</span>
       </NuxtLink>
       <NuxtLink to="/profile" class="flex flex-col items-center text-[#999] text-[11px]" active-class="!text-[#2E7D32] font-bold">
         <span class="text-xl mb-1">👤</span>
@@ -43,6 +48,10 @@ const user = useSupabaseUser()
         <NuxtLink to="/history" class="flex items-center gap-4 px-[15px] py-[12px] text-[#999] rounded-[8px] font-bold hover:bg-[#f8f9fa]" active-class="bg-[#E8F5E9] !text-[#2E7D32]">
           <span class="text-[18px]">💳</span>
           <span class="text-[15px]">{{ t('nav2') }}</span>
+        </NuxtLink>
+        <NuxtLink v-if="isAdmin" to="/admin" class="flex items-center gap-4 px-[15px] py-[12px] text-[#999] rounded-[8px] font-bold hover:bg-[#f8f9fa]" active-class="bg-[#E8F5E9] !text-[#2E7D32]">
+          <span class="text-[18px]">🛠️</span>
+          <span class="text-[15px]">{{ t('nav_admin') }}</span>
         </NuxtLink>
         <NuxtLink to="/profile" class="flex items-center gap-4 px-[15px] py-[12px] text-[#999] rounded-[8px] font-bold hover:bg-[#f8f9fa]" active-class="bg-[#E8F5E9] !text-[#2E7D32]">
           <span class="text-[18px]">👤</span>

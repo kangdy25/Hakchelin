@@ -49,6 +49,25 @@ const fetchTransactions = async () => {
   loading.value = false
 }
 
+const getTransactionDescription = (tx: Transaction) => {
+  if (tx.description === '포인트 충전') {
+    return t('payment.charge')
+  }
+  if (tx.description === '메뉴 예약') {
+    return t('payment.use')
+  }
+  if (tx.description === '예약 취소 환불') {
+    return t('payment.refund')
+  }
+  if (tx.description === '예약 취소 환불 (관리자)') {
+    return t('payment.refund_admin')
+  }
+  if (tx.description === '관리자 포인트 조정') {
+    return t('payment.admin_adjust')
+  }
+  return tx.description || (tx.type === 'charge' ? t('payment.charge') : t('payment.use'))
+}
+
 watch(
   () => userId.value,
   () => fetchTransactions(),
@@ -82,7 +101,7 @@ watch(
       >
         <div>
           <div class="text-[14px] font-black text-gray-800">
-            {{ transaction.description === '포인트 충전' ? t('payment.charge') : (transaction.description === '메뉴 예약' ? t('payment.use') : (transaction.description || (transaction.type === 'charge' ? t('payment.charge') : t('payment.use')))) }}
+            {{ getTransactionDescription(transaction) }}
           </div>
           <div class="text-[12px] text-[#777] mt-1">{{ formatDate(transaction.created_at) }}</div>
         </div>

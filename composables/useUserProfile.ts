@@ -2,12 +2,14 @@ type UserProfile = {
   name: string
   student_id: string
   current_point: number
+  role: 'student' | 'admin'
 }
 
 const emptyProfile = (): UserProfile => ({
   name: '학생',
   student_id: '',
-  current_point: 0
+  current_point: 0,
+  role: 'student'
 })
 
 export const useUserProfile = () => {
@@ -30,8 +32,11 @@ export const useUserProfile = () => {
   const fallbackProfile = (): UserProfile => ({
     name: userMetadata.value.name || '학생',
     student_id: userMetadata.value.student_id || '',
-    current_point: profile.value.current_point || 0
+    current_point: profile.value.current_point || 0,
+    role: profile.value.role || 'student'
   })
+
+  const isAdmin = computed(() => profile.value.role === 'admin')
 
   const resetProfile = () => {
     profile.value = emptyProfile()
@@ -50,7 +55,7 @@ export const useUserProfile = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('name, student_id, current_point')
+        .select('name, student_id, current_point, role')
         .eq('id', currentUserId)
         .single()
 
@@ -60,7 +65,8 @@ export const useUserProfile = () => {
         profile.value = {
           name: data.name || fallbackProfile().name,
           student_id: data.student_id || fallbackProfile().student_id,
-          current_point: Number(data.current_point || 0)
+          current_point: Number(data.current_point || 0),
+          role: (data.role || 'student') as 'student' | 'admin'
         }
       }
 
@@ -97,6 +103,7 @@ export const useUserProfile = () => {
     profile,
     loading,
     userId,
+    isAdmin,
     refreshProfile,
     adjustPoint
   }
