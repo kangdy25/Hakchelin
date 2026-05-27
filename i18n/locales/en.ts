@@ -170,7 +170,7 @@ export default {
       },
       "roles": {
         "admin": "Admin",
-        "student": "Student"
+        "student": "General Student"
       },
       "actions": {
         "adjust_points": "Adjust Points",
@@ -208,7 +208,7 @@ export default {
         "desc": "Details",
         "charge": "Top-up",
         "refund": "Refund",
-        "use": "Deduct",
+        "deduct": "Deduct",
         "no_info": "No info"
       },
       "empty_logs": "No transactions logged."

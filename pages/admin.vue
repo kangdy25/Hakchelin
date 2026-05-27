@@ -28,7 +28,7 @@ const isEditMode = ref(false)
 const menuForm = ref({
   id: '',
   day_of_week: 'mon',
-  type: '한식',
+  type: 'kr',
   title_ko: '',
   title_en: '',
   price: 4500
@@ -130,7 +130,7 @@ const openAddMenuModal = () => {
   menuForm.value = {
     id: '',
     day_of_week: selectedDay.value,
-    type: '한식',
+    type: 'kr',
     title_ko: '',
     title_en: '',
     price: 4500
@@ -143,7 +143,7 @@ const openEditMenuModal = (menu: any) => {
   menuForm.value = {
     id: menu.id,
     day_of_week: menu.day_of_week,
-    type: menu.type,
+    type: mapMenuType(menu.type),
     title_ko: menu.title_ko,
     title_en: menu.title_en,
     price: Number(menu.price)
@@ -179,6 +179,7 @@ const saveMenu = async () => {
       const { error } = await supabase
         .from('menus')
         .insert({
+          id: crypto.randomUUID(),
           day_of_week: menuForm.value.day_of_week,
           type: menuForm.value.type,
           title_ko: menuForm.value.title_ko,
@@ -817,9 +818,9 @@ const menuItemsByDay = computed(() => {
               v-model="menuForm.type"
               class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"
             >
-              <option value="한식">{{ t('menu_types.kr') }}</option>
-              <option value="일품">{{ t('menu_types.premium') }}</option>
-              <option value="포장">{{ t('menu_types.takeout') }}</option>
+              <option value="kr">{{ t('menu_types.kr') }}</option>
+              <option value="premium">{{ t('menu_types.premium') }}</option>
+              <option value="takeout">{{ t('menu_types.takeout') }}</option>
             </select>
           </div>
 

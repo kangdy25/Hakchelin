@@ -170,7 +170,7 @@ export default {
       },
       "roles": {
         "admin": "관리자",
-        "student": "학생"
+        "student": "일반학생"
       },
       "actions": {
         "adjust_points": "포인트 조정",
@@ -208,7 +208,7 @@ export default {
         "desc": "상세 정보",
         "charge": "충전",
         "refund": "환불",
-        "use": "사용",
+        "deduct": "사용",
         "no_info": "정보 없음"
       },
       "empty_logs": "트랜잭션 기록이 없습니다."
