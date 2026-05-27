@@ -1,3 +1,5 @@
+import type { Database } from '~/types/database.types'
+
 type UserProfile = {
   name: string
   student_id: string
@@ -13,7 +15,7 @@ const emptyProfile = (): UserProfile => ({
 })
 
 export const useUserProfile = () => {
-  const supabase = useSupabaseClient<any>()
+  const supabase = useSupabaseClient<Database>()
   const authUser = useSupabaseUser()
 
   const profile = useState<UserProfile>('user-profile', emptyProfile)

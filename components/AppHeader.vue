@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import type { Database } from '~/types/database.types'
+
 const { t, locale, setLocale } = useI18n({ useScope: 'global' })
 
 const toggleLanguage = async () => {
   await setLocale(locale.value === 'ko' ? 'en' : 'ko')
 }
 
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const config = useRuntimeConfig()
 const { profile: userData, userId } = useUserProfile()
 
@@ -87,8 +89,8 @@ const handleCharge = async () => {
       successUrl: `${window.location.origin}/payment/success`,
       failUrl: `${window.location.origin}/payment/fail`
     })
-  } catch (err: any) {
-    alert('결제 시작 중 오류가 발생했습니다: ' + err.message)
+  } catch (err: unknown) {
+    alert('결제 시작 중 오류가 발생했습니다: ' + (err as Error).message)
   } finally {
     isCharging.value = false
   }

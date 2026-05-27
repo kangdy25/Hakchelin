@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import type { Database, Menu, Reservation, User, Transaction } from '~/types/database.types'
 
 // Admin middleware protection
 definePageMeta({
@@ -7,7 +8,7 @@ definePageMeta({
 })
 
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const { profile: myProfile, refreshProfile, userId } = useUserProfile()
 
 // Tabs
@@ -20,12 +21,12 @@ const loading = ref(false)
 const processing = ref(false)
 
 // 1. Menus Data & Modals
-const dbMenus = ref<any[]>([])
-const days = ['mon', 'tue', 'wed', 'thu', 'fri']
-const selectedDay = ref('mon')
+const dbMenus = ref<Menu[]>([])
+const days = ['mon', 'tue', 'wed', 'thu', 'fri'] as const
+const selectedDay = ref<'mon' | 'tue' | 'wed' | 'thu' | 'fri'>('mon')
 const menuModalOpen = ref(false)
 const isEditMode = ref(false)
-const menuForm = ref({
+const menuForm = ref<Omit<Menu, 'created_at'>>({
   id: '',
   day_of_week: 'mon',
   type: 'kr',
@@ -35,20 +36,20 @@ const menuForm = ref({
 })
 
 // 2. Reservations (Tickets) Data
-const reservations = ref<any[]>([])
+const reservations = ref<Reservation[]>([])
 const ticketSearch = ref('')
 const ticketStatusFilter = ref<string>('all')
 
 // 3. Users Data & Modals
-const users = ref<any[]>([])
+const users = ref<User[]>([])
 const userSearch = ref('')
 const pointModalOpen = ref(false)
-const selectedUser = ref<any>(null)
+const selectedUser = ref<User | null>(null)
 const pointAdjustAmount = ref<number>(10000)
 const pointAdjustDesc = ref<string>('관리자 조정')
 
 // 4. Stats & Transactions Data
-const transactions = ref<any[]>([])
+const transactions = ref<Transaction[]>([])
 
 // --- API Calls ---
 
@@ -57,7 +58,15 @@ const loadMenus = async () => {
   loading.value = true
   const { data, error } = await supabase.from('menus').select('*')
   if (!error && data) {
-    dbMenus.value = data
+    dbMenus.value = data.map(menu => ({
+      id: menu.id,
+      day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
+      type: (menu.type || 'kr') as 'kr' | 'premium' | 'takeout',
+      title_ko: menu.title_ko,
+      title_en: menu.title_en,
+      price: menu.price || 4500,
+      created_at: menu.created_at
+    }))
   }
   loading.value = false
 }
@@ -70,7 +79,10 @@ const loadReservations = async () => {
     .select('id, user_id, menu_id, options, total_price, status, created_at, users(name, student_id), menus(title_ko, title_en, price)')
     .order('created_at', { ascending: false })
   if (!error && data) {
-    reservations.value = data
+    reservations.value = data.map(r => ({
+      ...r,
+      options: (r.options || {}) as { rice?: number; main?: number; [key: string]: any }
+    }))
   }
   loading.value = false
 }
@@ -138,7 +150,7 @@ const openAddMenuModal = () => {
   menuModalOpen.value = true
 }
 
-const openEditMenuModal = (menu: any) => {
+const openEditMenuModal = (menu: Menu) => {
   isEditMode.value = true
   menuForm.value = {
     id: menu.id,
@@ -192,8 +204,8 @@ const saveMenu = async () => {
     }
     menuModalOpen.value = false
     await loadMenus()
-  } catch (err: any) {
-    alert(t('admin.menus.cancel') + ' ' + t('admin.tickets.table.action') + ' ' + t('status.cancelled') + ': ' + err.message)
+  } catch (err: unknown) {
+    alert(t('admin.menus.cancel') + ' ' + t('admin.tickets.table.action') + ' ' + t('status.cancelled') + ': ' + (err as Error).message)
   } finally {
     processing.value = false
   }
@@ -214,8 +226,8 @@ const deleteMenu = async (id: string) => {
     if (error) throw error
     alert(t('admin.menus.alerts.deleted'))
     await loadMenus()
-  } catch (err: any) {
-    alert(t('admin.menus.alerts.deleted') + ' ' + t('status.cancelled') + ': ' + err.message)
+  } catch (err: unknown) {
+    alert(t('admin.menus.alerts.deleted') + ' ' + t('status.cancelled') + ': ' + (err as Error).message)
   } finally {
     processing.value = false
   }
@@ -250,8 +262,8 @@ const handleUseTicket = async (id: string) => {
     if (error) throw error
     alert(t('admin.tickets.actions.success_meal'))
     await loadReservations()
-  } catch (err: any) {
-    alert('Error: ' + err.message)
+  } catch (err: unknown) {
+    alert('Error: ' + (err as Error).message)
   } finally {
     processing.value = false
   }
@@ -265,8 +277,8 @@ const handleCancelTicket = async (id: string) => {
     if (error) throw error
     alert(t('admin.tickets.actions.success_cancel'))
     await loadReservations()
-  } catch (err: any) {
-    alert('Error: ' + err.message)
+  } catch (err: unknown) {
+    alert('Error: ' + (err as Error).message)
   } finally {
     processing.value = false
   }
@@ -284,7 +296,7 @@ const filteredUsers = computed(() => {
   })
 })
 
-const openPointModal = (userItem: any) => {
+const openPointModal = (userItem: User) => {
   selectedUser.value = userItem
   pointAdjustAmount.value = 10000
   pointAdjustDesc.value = t('admin.users.actions.adjust_desc_default')
@@ -310,14 +322,14 @@ const adjustUserPoints = async () => {
     alert(t('admin.users.actions.adjust_success', { amount: `${pointAdjustAmount.value > 0 ? '+' : ''}${pointAdjustAmount.value.toLocaleString()}` }))
     pointModalOpen.value = false
     await loadUsers()
-  } catch (err: any) {
-    alert('Failed: ' + err.message)
+  } catch (err: unknown) {
+    alert('Failed: ' + (err as Error).message)
   } finally {
     processing.value = false
   }
 }
 
-const toggleUserRole = async (userItem: any) => {
+const toggleUserRole = async (userItem: User) => {
   const newRole = userItem.role === 'admin' ? 'student' : 'admin'
   
   // Prevent self-demotion
@@ -342,8 +354,8 @@ const toggleUserRole = async (userItem: any) => {
     alert(t('admin.users.actions.success_role'))
     await loadUsers()
     await refreshProfile()
-  } catch (err: any) {
-    alert('Error: ' + err.message)
+  } catch (err: unknown) {
+    alert('Error: ' + (err as Error).message)
   } finally {
     processing.value = false
   }
@@ -383,8 +395,8 @@ const statsSummary = computed(() => {
 })
 
 // UI formatting helpers
-const mapMenuType = (koType: string) => {
-  if (['kr', 'premium', 'takeout'].includes(koType)) return koType
+const mapMenuType = (koType: string): 'kr' | 'premium' | 'takeout' => {
+  if (['kr', 'premium', 'takeout'].includes(koType)) return koType as 'kr' | 'premium' | 'takeout'
   if (koType === '한식') return 'kr'
   if (koType === '일품') return 'premium'
   if (koType === '포장') return 'takeout'
@@ -414,10 +426,11 @@ const statusClass: Record<string, string> = {
 }
 
 const menuItemsByDay = computed(() => {
-  const grouped: Record<string, any[]> = { mon: [], tue: [], wed: [], thu: [], fri: [] }
+  const grouped: Record<'mon' | 'tue' | 'wed' | 'thu' | 'fri', Menu[]> = { mon: [], tue: [], wed: [], thu: [], fri: [] }
   dbMenus.value.forEach(menu => {
-    if (grouped[menu.day_of_week]) {
-      grouped[menu.day_of_week].push(menu)
+    const dayGroup = grouped[menu.day_of_week]
+    if (dayGroup) {
+      dayGroup.push(menu)
     }
   })
   return grouped
@@ -582,7 +595,7 @@ const menuItemsByDay = computed(() => {
                   <!-- Menu info -->
                   <td class="py-4 px-6">
                     <div class="truncate max-w-[200px] font-bold text-gray-900">{{ locale === 'ko' ? (res.menus?.title_ko || t('admin.tickets.table.deleted_menu')) : (res.menus?.title_en || t('admin.tickets.table.deleted_menu')) }}</div>
-                    <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(res.created_at) }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(res.created_at || '') }}</div>
                   </td>
                   <!-- Price & Options -->
                   <td class="py-4 px-6">
@@ -594,8 +607,8 @@ const menuItemsByDay = computed(() => {
                   </td>
                   <!-- Status -->
                   <td class="py-4 px-6">
-                    <span class="inline-flex text-[11px] font-extrabold px-2.5 py-1 rounded-full border" :class="statusClass[res.status]">
-                      {{ t(`admin.tickets.filter_${res.status}`) }}
+                    <span class="inline-flex text-[11px] font-extrabold px-2.5 py-1 rounded-full border" :class="statusClass[res.status || 'reserved']">
+                      {{ t(`admin.tickets.filter_${res.status || 'reserved'}`) }}
                     </span>
                   </td>
                   <!-- Actions -->
@@ -761,7 +774,7 @@ const menuItemsByDay = computed(() => {
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-xs font-bold text-gray-700">
                   <tr v-for="tx in transactions" :key="tx.id" class="hover:bg-gray-50/50">
-                    <td class="py-3 px-6 text-gray-400">{{ formatDate(tx.created_at) }}</td>
+                    <td class="py-3 px-6 text-gray-400">{{ formatDate(tx.created_at || '') }}</td>
                     <td class="py-3 px-6 text-gray-800">
                       {{ tx.users?.name || t('admin.stats.log_table.no_info') }} ({{ tx.users?.student_id || '-' }})
                     </td>

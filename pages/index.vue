@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import type { Database, Menu } from '~/types/database.types'
+
+interface ReservePayload {
+  menu_id: string
+  price: number
+  options: {
+    rice?: number
+    main?: number
+    [key: string]: any
+  }
+}
 
 const { t, tm, rt } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const { profile, userId, refreshProfile, adjustPoint } = useUserProfile()
 
 const days = ['mon', 'tue', 'wed', 'thu', 'fri']
@@ -10,13 +21,13 @@ const selectedDay = ref('mon')
 const loading = ref(false)
 
 // 요일별 빈 배열로 초기화
-const dbMenus = ref<Record<string, any[]>>({
+const dbMenus = ref<Record<string, Menu[]>>({
   mon: [], tue: [], wed: [], thu: [], fri: []
 })
 
 // 한글 타입(DB 저장값)을 영문 코드(UI 뱃지용)로 변환
-const mapMenuType = (koType: string) => {
-  if (['kr', 'premium', 'takeout'].includes(koType)) return koType
+const mapMenuType = (koType: string): 'kr' | 'premium' | 'takeout' => {
+  if (['kr', 'premium', 'takeout'].includes(koType)) return koType as 'kr' | 'premium' | 'takeout'
   if (koType === '한식') return 'kr'
   if (koType === '일품') return 'premium'
   if (koType === '포장') return 'takeout'
@@ -25,14 +36,18 @@ const mapMenuType = (koType: string) => {
 
 // Supabase 메뉴 불러오기
 const fetchMenus = async () => {
-  const { data, error } = await supabase.from('menus').select('*') as { data: any[] | null, error: any }
+  const { data, error } = await supabase.from('menus').select('*')
   if (data) {
-    const grouped: Record<string, any[]> = { mon: [], tue: [], wed: [], thu: [], fri: [] }
-    data.forEach((menu: any) => {
-      const menuItem = {
-        ...menu,
-        type: mapMenuType(menu.type),
-        price: Number(menu.price || 0)
+    const grouped: Record<string, Menu[]> = { mon: [], tue: [], wed: [], thu: [], fri: [] }
+    data.forEach((menu) => {
+      const menuItem: Menu = {
+        id: menu.id,
+        day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
+        type: mapMenuType(menu.type || 'kr'),
+        title_ko: menu.title_ko,
+        title_en: menu.title_en,
+        price: Number(menu.price || 4500),
+        created_at: menu.created_at
       }
 
       if (grouped[menuItem.day_of_week]) {
@@ -50,7 +65,7 @@ onMounted(() => {
 })
 
 // 예약 처리 로직
-const onReserve = async (payload: any) => {
+const onReserve = async (payload: ReservePayload) => {
   if (!userId.value) {
     alert('로그인이 필요합니다.')
     return navigateTo('/login')
@@ -89,8 +104,8 @@ const onReserve = async (payload: any) => {
     alert('예약이 성공적으로 완료되었습니다! 내 식권 메뉴에서 확인하세요.')
     adjustPoint(-payload.price)
     await refreshProfile()
-  } catch (err: any) {
-    alert('오류: ' + err.message)
+  } catch (err: unknown) {
+    alert('오류: ' + (err as Error).message)
   } finally {
     loading.value = false
   }

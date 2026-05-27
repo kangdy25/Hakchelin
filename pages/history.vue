@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { Database } from '~/types/database.types'
+
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const { userId } = useUserProfile()
 
 type Transaction = {
@@ -43,7 +45,13 @@ const fetchTransactions = async () => {
   if (error) {
     errorMessage.value = error.message
   } else {
-    transactions.value = data || []
+    transactions.value = (data || []).map(tx => ({
+      id: tx.id,
+      amount: tx.amount,
+      type: (tx.type || 'deduct') as 'charge' | 'deduct' | 'refund',
+      description: tx.description,
+      created_at: tx.created_at || ''
+    }))
   }
 
   loading.value = false

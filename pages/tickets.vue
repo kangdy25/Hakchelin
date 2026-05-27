@@ -1,28 +1,11 @@
 <script setup lang="ts">
+import type { Database, Reservation } from '~/types/database.types'
+
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const { userId, refreshProfile, adjustPoint } = useUserProfile()
 
 const cancellingId = ref<string | null>(null)
-
-type Reservation = {
-  id: string
-  menu_id: string
-  options: {
-    rice?: number
-    main?: number
-  }
-  total_price: number
-  status: 'reserved' | 'used' | 'cancelled'
-  created_at: string
-  menus?: {
-    type: string
-    title_ko: string
-    title_en: string
-    day_of_week: string
-    price: number
-  } | null
-}
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -37,7 +20,7 @@ const filteredReservations = computed(() => {
   return reservations.value
 })
 
-const statusLabel = computed(() => ({
+const statusLabel = computed<Record<string, string>>(() => ({
   reserved: t('status.reserved'),
   used: t('status.used'),
   cancelled: t('status.cancelled')
@@ -85,15 +68,19 @@ const fetchReservations = async () => {
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('id, menu_id, options, total_price, status, created_at')
+    .select('id, user_id, menu_id, options, total_price, status, created_at')
     .eq('user_id', userId.value)
     .order('created_at', { ascending: false })
 
   if (error) {
     errorMessage.value = error.message
   } else {
-    const rows = data || []
-    const menuIds = [...new Set(rows.map((reservation: Reservation) => reservation.menu_id).filter(Boolean))]
+    const rows: Reservation[] = (data || []).map(r => ({
+      ...r,
+      options: (r.options || {}) as { rice?: number; main?: number; [key: string]: any },
+      menus: null
+    }))
+    const menuIds = [...new Set(rows.map(reservation => reservation.menu_id).filter(Boolean))] as string[]
 
     if (!menuIds.length) {
       reservations.value = rows
@@ -109,10 +96,10 @@ const fetchReservations = async () => {
     if (menuError) {
       errorMessage.value = menuError.message
     } else {
-      const menuMap = new Map((menus || []).map((menu: any) => [menu.id, menu]))
-      reservations.value = rows.map((reservation: Reservation) => ({
+      const menuMap = new Map((menus || []).map(menu => [menu.id, menu]))
+      reservations.value = rows.map(reservation => ({
         ...reservation,
-        menus: menuMap.get(reservation.menu_id) || null
+        menus: reservation.menu_id ? menuMap.get(reservation.menu_id) || null : null
       }))
     }
   }
@@ -122,13 +109,15 @@ const fetchReservations = async () => {
 
 const handleCancel = async (reservation: Reservation) => {
   if (cancellingId.value) return
+  const currentUserId = userId.value
+  if (!currentUserId) return
   if (!confirm(t('payment.cancel_confirm'))) return
 
   cancellingId.value = reservation.id
   try {
     const { error } = await supabase.rpc('cancel_reservation', {
       p_reservation_id: reservation.id,
-      p_user_id: userId.value
+      p_user_id: currentUserId
     })
 
     if (error) {
@@ -140,8 +129,8 @@ const handleCancel = async (reservation: Reservation) => {
     adjustPoint(reservation.total_price)
     await refreshProfile()
     await fetchReservations()
-  } catch (err: any) {
-    alert(t('payment.cancel_error') + ': ' + err.message)
+  } catch (err: unknown) {
+    alert(t('payment.cancel_error') + ': ' + (err as Error).message)
   } finally {
     cancellingId.value = null
   }
@@ -202,11 +191,11 @@ watch(
 
         <div class="flex items-start justify-between gap-3 mb-4">
           <div>
-            <div class="text-[12px] text-[#777] font-bold mb-1">{{ formatDate(reservation.created_at) }}</div>
+            <div class="text-[12px] text-[#777] font-bold mb-1">{{ formatDate(reservation.created_at || '') }}</div>
             <h2 class="text-[18px] font-black text-gray-800 leading-snug">{{ menuTitle(reservation) }}</h2>
           </div>
-          <span class="shrink-0 text-[12px] font-bold px-3 py-1.5 rounded-lg" :class="statusClass[reservation.status]">
-            {{ statusLabel[reservation.status] }}
+          <span class="shrink-0 text-[12px] font-bold px-3 py-1.5 rounded-lg" :class="statusClass[reservation.status || 'reserved']">
+            {{ statusLabel[reservation.status || 'reserved'] }}
           </span>
         </div>
 

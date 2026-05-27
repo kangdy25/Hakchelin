@@ -55,8 +55,8 @@ const handleSubmit = async () => {
       isLoginMode.value = true
       password.value = ''
     }
-  } catch (error: any) {
-    errorMessage.value = error.message
+  } catch (error: unknown) {
+    errorMessage.value = (error as Error).message
   } finally {
     loading.value = false
   }

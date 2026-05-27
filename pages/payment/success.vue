@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { Database } from '~/types/database.types'
+
 definePageMeta({
   layout: 'default'
 })
 
 const route = useRoute()
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const { refreshProfile } = useUserProfile()
 
 const loading = ref(true)
@@ -32,8 +34,8 @@ const confirmPayment = async () => {
 
     confirmedAmount.value = Number(data?.order?.point_amount || amount)
     await refreshProfile()
-  } catch (err: any) {
-    errorMessage.value = err.message || '결제 승인 중 오류가 발생했습니다.'
+  } catch (err: unknown) {
+    errorMessage.value = (err as Error).message || '결제 승인 중 오류가 발생했습니다.'
   } finally {
     loading.value = false
   }

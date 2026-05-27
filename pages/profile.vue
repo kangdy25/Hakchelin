@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import type { Database, Reservation } from '~/types/database.types'
 
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<any>()
+const supabase = useSupabaseClient<Database>()
 const { profile, isAdmin, userId } = useUserProfile()
 
-const reservations = ref<any[]>([])
+const reservations = ref<Pick<Reservation, 'options' | 'status'>[]>([])
 const loadingStats = ref(true)
 
 const fetchStats = async () => {
@@ -15,7 +16,10 @@ const fetchStats = async () => {
     .select('options, status')
     .eq('user_id', userId.value)
   if (data) {
-    reservations.value = data
+    reservations.value = data.map(r => ({
+      status: r.status,
+      options: (r.options || {}) as { rice?: number; main?: number; [key: string]: any }
+    }))
   }
   loadingStats.value = false
 }
