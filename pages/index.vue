@@ -15,6 +15,7 @@ interface ReservePayload {
 const { t, tm, rt } = useI18n({ useScope: 'global' })
 const supabase = useSupabaseClient<Database>()
 const { profile, userId, refreshProfile, adjustPoint } = useUserProfile()
+const { showAlert } = useModal()
 
 const days = ['mon', 'tue', 'wed', 'thu', 'fri']
 const selectedDay = ref('mon')
@@ -67,19 +68,19 @@ onMounted(() => {
 // 예약 처리 로직
 const onReserve = async (payload: ReservePayload) => {
   if (!userId.value) {
-    alert('로그인이 필요합니다.')
+    await showAlert('로그인이 필요합니다.', { title: '로그인 필요', type: 'warning' })
     return navigateTo('/login')
   }
 
   if (!payload.menu_id || !payload.price) {
-    alert('예약할 메뉴 정보를 확인할 수 없습니다.')
+    await showAlert('예약할 메뉴 정보를 확인할 수 없습니다.', { title: '정보 부족', type: 'error' })
     return
   }
 
   const latestProfile = await refreshProfile()
   const currentPoint = latestProfile?.current_point ?? profile.value.current_point
   if (currentPoint < payload.price) {
-    alert('포인트가 부족합니다. 상단 메뉴에서 포인트를 먼저 충전해주세요.')
+    await showAlert('포인트가 부족합니다. 상단 메뉴에서 포인트를 먼저 충전해주세요.', { title: '포인트 부족', type: 'warning' })
     return
   }
 
@@ -94,18 +95,18 @@ const onReserve = async (payload: ReservePayload) => {
 
     if (error) {
       if (error.message.includes('Insufficient points')) {
-        alert('포인트가 부족합니다. 상단 메뉴에서 포인트를 먼저 충전해주세요.')
+        await showAlert('포인트가 부족합니다. 상단 메뉴에서 포인트를 먼저 충전해주세요.', { title: '포인트 부족', type: 'warning' })
       } else {
-        alert('예약 중 오류가 발생했습니다: ' + error.message)
+        await showAlert('예약 중 오류가 발생했습니다: ' + error.message, { title: '예약 실패', type: 'error' })
       }
       return
     }
 
-    alert('예약이 성공적으로 완료되었습니다! 내 식권 메뉴에서 확인하세요.')
+    await showAlert('예약이 성공적으로 완료되었습니다! 내 식권 메뉴에서 확인하세요.', { title: '예약 완료', type: 'success' })
     adjustPoint(-payload.price)
     await refreshProfile()
   } catch (err: unknown) {
-    alert('오류: ' + (err as Error).message)
+    await showAlert('오류: ' + (err as Error).message, { title: '오류 발생', type: 'error' })
   } finally {
     loading.value = false
   }

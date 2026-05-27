@@ -5,6 +5,7 @@ import type { Database, Reservation } from '~/types/database.types'
 const { t, locale } = useI18n({ useScope: 'global' })
 const supabase = useSupabaseClient<Database>()
 const { profile, isAdmin, userId } = useUserProfile()
+const { showAlert } = useModal()
 
 const reservations = ref<Pick<Reservation, 'options' | 'status'>[]>([])
 const loadingStats = ref(true)
@@ -38,7 +39,7 @@ const handleLogout = async () => {
   if (!error) {
     navigateTo('/login')
   } else {
-    alert(t('logout_error'))
+    await showAlert(t('logout_error'), { title: '오류', type: 'error' })
   }
 }
 

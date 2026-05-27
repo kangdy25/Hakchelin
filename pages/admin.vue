@@ -9,7 +9,7 @@ definePageMeta({
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const supabase = useSupabaseClient<Database>()
-const { profile: myProfile, refreshProfile, userId } = useUserProfile()
+const { refreshProfile, userId } = useUserProfile()
 
 // Tabs
 const tabs = ['menus', 'tickets', 'users', 'stats'] as const

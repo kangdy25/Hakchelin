@@ -1,4 +1,4 @@
-export default defineNuxtRouteMiddleware(async (to, _from) => {
+export default defineNuxtRouteMiddleware(async (_to, _from) => {
   const { profile, refreshProfile, isAdmin } = useUserProfile()
 
   // 만약 프로필이 로드되지 않았거나 비어 있다면 새로고침

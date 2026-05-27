@@ -4,6 +4,7 @@ import type { Database, Reservation } from '~/types/database.types'
 const { t, locale } = useI18n({ useScope: 'global' })
 const supabase = useSupabaseClient<Database>()
 const { userId, refreshProfile, adjustPoint } = useUserProfile()
+const { showAlert, showConfirm } = useModal()
 
 const cancellingId = ref<string | null>(null)
 
@@ -111,7 +112,9 @@ const handleCancel = async (reservation: Reservation) => {
   if (cancellingId.value) return
   const currentUserId = userId.value
   if (!currentUserId) return
-  if (!confirm(t('payment.cancel_confirm'))) return
+  
+  const confirmed = await showConfirm(t('payment.cancel_confirm'), t('payment.cancel_btn'))
+  if (!confirmed) return
 
   cancellingId.value = reservation.id
   try {
@@ -121,16 +124,16 @@ const handleCancel = async (reservation: Reservation) => {
     })
 
     if (error) {
-      alert(t('payment.cancel_error') + ': ' + error.message)
+      await showAlert(t('payment.cancel_error') + ': ' + error.message, { title: t('payment.cancel_error'), type: 'error' })
       return
     }
 
-    alert(t('payment.cancel_success'))
+    await showAlert(t('payment.cancel_success'), { title: t('status.cancelled'), type: 'success' })
     adjustPoint(reservation.total_price)
     await refreshProfile()
     await fetchReservations()
   } catch (err: unknown) {
-    alert(t('payment.cancel_error') + ': ' + (err as Error).message)
+    await showAlert(t('payment.cancel_error') + ': ' + (err as Error).message, { title: t('payment.cancel_error'), type: 'error' })
   } finally {
     cancellingId.value = null
   }
