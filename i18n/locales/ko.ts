@@ -1,5 +1,5 @@
 export default {
-  "app_name": "우리학교 식탁 v8",
+  "app_name": "학슐랭",
   "user_name": "김철수",
   "user_major": "컴퓨터공학",
   "welcome": "{name}님 환영합니다!",
@@ -84,7 +84,7 @@ export default {
   },
   "admin": {
     "dashboard": "대시보드",
-    "sub_desc": "Smart Campus Meal 시스템 운영 및 예약 관리를 담당합니다.",
+    "sub_desc": "학슐랭 시스템 운영 및 예약 관리를 담당합니다.",
     "loading": "데이터를 안전하게 불러오는 중입니다...",
     "processing": "작업 처리 중입니다...",
     "tabs": {

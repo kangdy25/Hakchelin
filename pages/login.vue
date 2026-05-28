@@ -66,7 +66,7 @@ const handleSubmit = async () => {
 <template>
   <div class="w-full max-w-md bg-white/80 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden p-8 border border-white">
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Smart Campus Meal</h1>
+      <h1 class="text-3xl font-bold text-gray-900 tracking-tight">학슐랭</h1>
       <p class="text-gray-500 mt-2 text-sm">
         {{ isLoginMode ? '학식 예약을 위해 로그인해주세요' : '학식 예약을 위한 계정을 생성합니다' }}
       </p>

@@ -1,5 +1,5 @@
 export default {
-  "app_name": "Uni Menu v8",
+  "app_name": "Hakchelin",
   "user_name": "Student Kim",
   "user_major": "Computer Science",
   "welcome": "Welcome, {name}!",
@@ -84,7 +84,7 @@ export default {
   },
   "admin": {
     "dashboard": "Dashboard",
-    "sub_desc": "Responsible for Smart Campus Meal system operations and reservation management.",
+    "sub_desc": "Responsible for Hakchelin system operations and reservation management.",
     "loading": "Loading data safely...",
     "processing": "Processing your request...",
     "tabs": {
