@@ -61,6 +61,7 @@ const userSearch = ref('')
 const pointModalOpen = ref(false)
 const selectedUser = ref<User | null>(null)
 const pointAdjustAmount = ref<number>(10000)
+const pointAdjustAmountStr = ref<string>('10,000')
 const pointAdjustDesc = ref<string>('관리자 조정')
 
 // 4. Stats & Transactions Data
@@ -146,6 +147,91 @@ const loadTabDependencies = async () => {
 watch(activeTab, () => {
   loadTabDependencies()
 }, { immediate: true })
+
+// 관리자 포인트 조정 감시 및 콤마 포맷팅, 최대 입력 제한
+watch(pointAdjustAmountStr, (newVal) => {
+  if (newVal === '') {
+    pointAdjustAmount.value = 0
+    return
+  }
+
+  const isNegative = newVal.startsWith('-')
+  const clean = newVal.replace(/[^0-9]/g, '')
+  
+  if (clean === '') {
+    pointAdjustAmount.value = 0
+    if (newVal === '-') {
+      pointAdjustAmountStr.value = '-'
+    } else if (newVal !== '') {
+      pointAdjustAmountStr.value = ''
+    }
+    return
+  }
+
+  let parsed = parseInt(clean, 10)
+  
+  // 차감(음수)인 경우 최대 차감 포인트 한도는 대상 사용자의 현재 포인트로 제한
+  if (isNegative) {
+    const userPoint = selectedUser.value?.current_point || 0
+    if (parsed > userPoint) {
+      parsed = userPoint
+    }
+  } else {
+    // 충전(양수)인 경우 최대 한도 제한 (절대값 99,999,999)
+    const maxLimit = 99999999
+    if (parsed > maxLimit) {
+      parsed = maxLimit
+    }
+  }
+
+  const finalAmount = isNegative ? -parsed : parsed
+  pointAdjustAmount.value = finalAmount
+
+  const formatted = (isNegative ? '-' : '') + parsed.toLocaleString()
+  if (newVal !== formatted) {
+    pointAdjustAmountStr.value = formatted
+  }
+})
+
+// 관리자 포인트 조정 키 입력 제한
+const handlePointKeydown = (event: KeyboardEvent) => {
+  const allowedKeys = [
+    'Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 
+    'ArrowUp', 'ArrowDown', 'Delete', 'Home', 'End'
+  ]
+  if (allowedKeys.includes(event.key)) {
+    return
+  }
+  if (event.ctrlKey || event.metaKey) {
+    return
+  }
+  
+  // 마이너스 부호 허용 (단, 맨 처음에만 허용)
+  if (event.key === '-') {
+    const inputEl = event.target as HTMLInputElement
+    if (pointAdjustAmountStr.value.includes('-') || inputEl.selectionStart !== 0) {
+      event.preventDefault()
+    }
+    return
+  }
+
+  // 숫자가 아니면 차단
+  if (!/^\d$/.test(event.key)) {
+    event.preventDefault()
+  }
+}
+
+// 관리자 포인트 조정 붙여넣기 제한
+const handlePointPaste = (event: ClipboardEvent) => {
+  const pasteData = event.clipboardData?.getData('text') || ''
+  const cleanPaste = pasteData.replace(/,/g, '')
+  const hasMinus = cleanPaste.startsWith('-')
+  const digits = hasMinus ? cleanPaste.slice(1) : cleanPaste
+  
+  if (!/^\d*$/.test(digits)) {
+    event.preventDefault()
+  }
+}
 
 onMounted(() => {
   loadTabDependencies()
@@ -314,6 +400,7 @@ const filteredUsers = computed(() => {
 const openPointModal = (userItem: User) => {
   selectedUser.value = userItem
   pointAdjustAmount.value = 10000
+  pointAdjustAmountStr.value = '10,000'
   pointAdjustDesc.value = t('admin.users.actions.adjust_desc_default')
   pointModalOpen.value = true
 }
@@ -920,8 +1007,11 @@ const menuItemsByDay = computed(() => {
           <div>
             <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.users.actions.adjust_amount') }}</label>
             <input
-              v-model.number="pointAdjustAmount"
-              type="number"
+              v-model="pointAdjustAmountStr"
+              type="text"
+              inputmode="numeric"
+              @keydown="handlePointKeydown"
+              @paste="handlePointPaste"
               required
               placeholder="e.g. 10000 or -5000"
               class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"

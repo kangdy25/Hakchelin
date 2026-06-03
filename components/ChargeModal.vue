@@ -22,13 +22,24 @@ const isCharging = ref(false)
 
 const presets = [5000, 10000, 20000, 30000, 50000]
 
-// 직접 입력 폼 변경 시 감지
+// 직접 입력 폼 변경 시 감지 (숫자 이외 문자 실시간 차단, 100만원 한도 제한 및 콤마 포맷팅)
 watch(customAmountStr, (newVal) => {
-  const parsed = parseInt(newVal.replace(/[^0-9]/g, ''), 10)
-  if (!isNaN(parsed)) {
-    amount.value = parsed
-  } else if (newVal === '') {
+  const clean = newVal.replace(/[^0-9]/g, '')
+  if (clean === '') {
     amount.value = 0
+    if (newVal !== '') {
+      customAmountStr.value = ''
+    }
+    return
+  }
+  let parsed = parseInt(clean, 10)
+  if (parsed > 1000000) {
+    parsed = 1000000
+  }
+  amount.value = parsed
+  const formatted = parsed.toLocaleString()
+  if (newVal !== formatted) {
+    customAmountStr.value = formatted
   }
 })
 
@@ -79,6 +90,14 @@ const handlePayment = async () => {
 
   if (amount.value < 1000) {
     showAlert('최소 충전 금액은 1,000원입니다.', {
+      title: '금액 오류',
+      type: 'warning'
+    })
+    return
+  }
+
+  if (amount.value > 1000000) {
+    showAlert('최대 충전 금액은 1,000,000원입니다.', {
       title: '금액 오류',
       type: 'warning'
     })
@@ -165,7 +184,7 @@ const handlePayment = async () => {
         <div class="space-y-5">
           <!-- Guide Text -->
           <p class="text-sm text-gray-500 font-medium leading-relaxed">
-            {{ locale === 'ko' ? '충전할 포인트 금액을 선택하거나 직접 입력해주세요. (1원 = 1포인트)' : 'Please select or enter the amount of points to charge. (1 KRW = 1 Point)' }}
+            {{ locale === 'ko' ? '충전할 포인트 금액을 선택하거나 직접 입력해주세요. (최대 100만원, 1원 = 1포인트)' : 'Please select or enter the amount of points to charge. (Max 1,000,000 KRW, 1 KRW = 1 Point)' }}
           </p>
 
           <!-- Presets -->
@@ -187,7 +206,7 @@ const handlePayment = async () => {
               type="text" 
               v-model="customAmountStr"
               class="w-full pl-4 pr-12 py-3.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#2E7D32] focus:ring-4 focus:ring-green-100 outline-none rounded-xl text-base font-bold text-gray-800 transition-all duration-200"
-              :placeholder="locale === 'ko' ? '직접 입력 (최소 1,000P)' : 'Enter amount (min 1,000P)'"
+              :placeholder="locale === 'ko' ? '직접 입력 (1,000P ~ 1,000,000P)' : 'Enter amount (1,000P ~ 1,000,000P)'"
             />
             <span class="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-400 text-sm">
               KRW

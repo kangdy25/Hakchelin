@@ -27,27 +27,71 @@ const restAmount = computed(() => {
   return current % 1000
 })
 
-// 직접 입력 폼 변경 시 감지
+// 직접 입력 폼 변경 시 감지 (숫자 이외 문자 실시간 차단, 콤마 포맷팅 및 최대 보유 포인트 한도 제한)
 watch(customAmountStr, (newVal) => {
-  const parsed = parseInt(newVal.replace(/[^0-9]/g, ''), 10)
-  if (!isNaN(parsed)) {
-    amount.value = parsed
-  } else if (newVal === '') {
+  const clean = newVal.replace(/[^0-9]/g, '')
+  if (clean === '') {
     amount.value = 0
+    if (newVal !== '') {
+      customAmountStr.value = ''
+    }
+    return
+  }
+  let parsed = parseInt(clean, 10)
+  const current = userData.value?.current_point || 0
+  
+  if (parsed > current) {
+    parsed = current
+  }
+
+  amount.value = parsed
+  const formatted = parsed.toLocaleString()
+  if (newVal !== formatted) {
+    customAmountStr.value = formatted
   }
 })
 
 // 프리셋 선택 시 작동
 const selectPreset = (val: number) => {
-  amount.value = val
-  customAmountStr.value = val.toLocaleString()
+  const current = userData.value?.current_point || 0
+  const target = Math.min(val, current)
+  amount.value = target
+  customAmountStr.value = target.toLocaleString()
+}
+
+// 키보드 문자 입력 실시간 제한
+const handleKeydown = (event: KeyboardEvent) => {
+  const allowedKeys = [
+    'Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 
+    'ArrowUp', 'ArrowDown', 'Delete', 'Home', 'End'
+  ]
+  if (allowedKeys.includes(event.key)) {
+    return
+  }
+  if (event.ctrlKey || event.metaKey) {
+    return
+  }
+  if (!/^\d$/.test(event.key)) {
+    event.preventDefault()
+  }
+}
+
+// 붙여넣기 문자 제한
+const handlePaste = (event: ClipboardEvent) => {
+  const pasteData = event.clipboardData?.getData('text') || ''
+  const cleanPaste = pasteData.replace(/,/g, '')
+  if (!/^\d+$/.test(cleanPaste)) {
+    event.preventDefault()
+  }
 }
 
 // 초기화
 watch(() => props.show, (newVal) => {
   if (newVal) {
-    amount.value = 1000
-    customAmountStr.value = '1,000'
+    const current = userData.value?.current_point || 0
+    const defaultAmount = Math.min(1000, current)
+    amount.value = defaultAmount
+    customAmountStr.value = defaultAmount.toLocaleString()
   }
 })
 
@@ -157,7 +201,8 @@ const handleDonate = async () => {
               v-for="preset in presets" 
               :key="preset"
               @click="selectPreset(preset)"
-              class="py-2.5 px-2 bg-gray-50 hover:bg-orange-50 hover:text-[#E65100] hover:border-orange-300 border border-gray-200/80 rounded-xl text-xs font-bold text-gray-700 transition-all duration-150 cursor-pointer"
+              :disabled="(userData?.current_point || 0) < preset"
+              class="py-2.5 px-2 bg-gray-50 hover:bg-orange-50 hover:text-[#E65100] hover:border-orange-300 border border-gray-200/80 rounded-xl text-xs font-bold text-gray-700 transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:hover:text-gray-700 disabled:hover:border-gray-200/80"
               :class="{ 'bg-orange-50 text-[#E65100] border-[#E65100] ring-2 ring-orange-100': amount === preset }"
             >
               +{{ preset.toLocaleString() }}P
@@ -179,6 +224,10 @@ const handleDonate = async () => {
             <input 
               type="text" 
               v-model="customAmountStr"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              @keydown="handleKeydown"
+              @paste="handlePaste"
               class="w-full pl-4 pr-12 py-3.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#E65100] focus:ring-4 focus:ring-orange-100 outline-none rounded-xl text-base font-bold text-gray-800 transition-all duration-200"
               :placeholder="locale === 'ko' ? '직접 입력' : 'Enter amount'"
             />
