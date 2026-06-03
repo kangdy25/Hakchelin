@@ -18,7 +18,22 @@ const { profile, userId, refreshProfile, adjustPoint } = useUserProfile()
 const { showAlert } = useModal()
 
 const days = ['mon', 'tue', 'wed', 'thu', 'fri']
-const selectedDay = ref('mon')
+
+// 실제 오늘 요일 구하기 (주말이면 undefined)
+const getRealToday = () => {
+  const dayIndex = new Date().getDay()
+  const dayMap: Record<number, string> = {
+    1: 'mon',
+    2: 'tue',
+    3: 'wed',
+    4: 'thu',
+    5: 'fri'
+  }
+  return dayMap[dayIndex]
+}
+
+const realToday = getRealToday()
+const selectedDay = ref(realToday || 'mon')
 const loading = ref(false)
 
 // 요일별 빈 배열로 초기화
@@ -115,9 +130,21 @@ const onReserve = async (payload: ReservePayload) => {
 
 <template>
   <div>
-    <div class="bg-[#FFF3E0] rounded-[10px] p-[12px] mb-[15px] text-[12px] text-[#E65100] border border-[#FFE0B2] leading-[1.6]">
-      <div v-for="item in tm('policy')" :key="item">
-        {{ rt(item) }}
+    <!-- 이용 규정 안내 배너 -->
+    <div class="bg-gradient-to-r from-[#FFF3E0]/50 to-[#FFE0B2]/40 rounded-[18px] p-5 mb-[20px] border border-[#FFE0B2] shadow-[0_4px_16px_rgba(230,81,0,0.02)]">
+      <!-- 제목 -->
+      <div class="text-[15.5px] font-black text-[#D84315] flex items-center gap-2 mb-3">
+        {{ t('policy_title') }}
+      </div>
+      <!-- 리스트 내용 -->
+      <div class="flex flex-col gap-2.5">
+        <div 
+          v-for="item in tm('policy')" 
+          :key="item"
+          class="text-[13.5px] font-medium text-gray-700 leading-relaxed flex items-start gap-1.5"
+        >
+          {{ rt(item) }}
+        </div>
       </div>
     </div>
 
@@ -140,6 +167,11 @@ const onReserve = async (payload: ReservePayload) => {
         :disabled="loading"
         @reserve="onReserve"
       />
+    </div>
+
+    <!-- 마음을 잇는 식탁 카드는 메뉴 카드 하단에 독립적으로 w-full 상태를 유지하여 노출 -->
+    <div v-if="selectedDay === realToday" class="mt-4 pb-6 w-full">
+      <HeartTableCard />
     </div>
     
     <div v-if="!dbMenus[selectedDay]?.length" class="text-center py-[40px] bg-white rounded-[15px] border border-[#eee] mb-6">

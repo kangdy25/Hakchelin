@@ -23,12 +23,27 @@ const processing = ref(false)
 // 1. Menus Data & Modals
 const dbMenus = ref<Menu[]>([])
 const days = ['mon', 'tue', 'wed', 'thu', 'fri'] as const
-const selectedDay = ref<'mon' | 'tue' | 'wed' | 'thu' | 'fri'>('mon')
+
+// 실제 오늘 요일 구하기 (주말이면 undefined)
+const getRealToday = () => {
+  const dayIndex = new Date().getDay()
+  const dayMap: Record<number, 'mon' | 'tue' | 'wed' | 'thu' | 'fri'> = {
+    1: 'mon',
+    2: 'tue',
+    3: 'wed',
+    4: 'thu',
+    5: 'fri'
+  }
+  return dayMap[dayIndex]
+}
+
+const realToday = getRealToday()
+const selectedDay = ref<'mon' | 'tue' | 'wed' | 'thu' | 'fri'>(realToday || 'mon')
 const menuModalOpen = ref(false)
 const isEditMode = ref(false)
 const menuForm = ref<Omit<Menu, 'created_at'>>({
   id: '',
-  day_of_week: 'mon',
+  day_of_week: realToday || 'mon',
   type: 'kr',
   title_ko: '',
   title_en: '',
@@ -784,13 +799,13 @@ const menuItemsByDay = computed(() => {
                     <td class="py-3 px-6">
                       <span
                         class="inline-block text-[10px] px-1.5 py-0.5 rounded"
-                        :class="tx.type === 'charge' ? 'bg-blue-50 text-blue-700 border border-blue-200' : tx.type === 'refund' ? 'bg-green-50 text-[#2E7D32] border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'"
+                        :class="tx.description === '마음을 잇는 식탁 기부' ? 'bg-pink-50 text-pink-600 border border-pink-200' : (tx.type === 'charge' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (tx.type === 'refund' ? 'bg-green-50 text-[#2E7D32] border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'))"
                       >
-                        {{ t(`admin.stats.log_table.${tx.type}`) }}
+                        {{ tx.description === '마음을 잇는 식탁 기부' ? t('admin.stats.log_table.donate') : t(`admin.stats.log_table.${tx.type}`) }}
                       </span>
                     </td>
                     <td class="py-3 px-6 text-gray-500 font-semibold">
-                      {{ tx.description === '포인트 충전' ? t('payment.charge') : (tx.description === '메뉴 예약' ? t('payment.use') : (tx.description === '예약 취소 환불' ? t('payment.refund') : (tx.description === '예약 취소 환불 (관리자)' ? t('payment.refund_admin') : (tx.description === '관리자 포인트 조정' ? t('payment.admin_adjust') : (tx.description || '-'))))) }}
+                      {{ tx.description === '포인트 충전' ? t('payment.charge') : (tx.description === '메뉴 예약' ? t('payment.use') : (tx.description === '예약 취소 환불' ? t('payment.refund') : (tx.description === '예약 취소 환불 (관리자)' ? t('payment.refund_admin') : (tx.description === '관리자 포인트 조정' ? t('payment.admin_adjust') : (tx.description === '마음을 잇는 식탁 기부' ? t('heartTable.donateBtn') : (tx.description || '-')))))) }}
                     </td>
                   </tr>
                 </tbody>

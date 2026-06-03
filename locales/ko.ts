@@ -5,6 +5,7 @@ export default {
   "welcome": "{name}님 환영합니다!",
   "point": "내 포인트",
   "charge": "+ 충전하기",
+  "policy_title": "📢 이용 안내 및 예약 규정",
   "policy": [
     "📍 점심 전용 (11:30~13:30) 운영",
     "📍 사전예약: 4,500P / 현장결제: 5,500P",
@@ -209,9 +210,22 @@ export default {
         "charge": "충전",
         "refund": "환불",
         "deduct": "사용",
+        "donate": "기부",
         "no_info": "정보 없음"
       },
       "empty_logs": "트랜잭션 기록이 없습니다."
     }
+  },
+  "heartTable": {
+    "title": "마음을 잇는 식탁",
+    "subtitle": "따뜻한 마음으로 소통하고 나누는 대학 식탁",
+    "donateBtn": "남는 포인트/잔돈 기부하기",
+    "consultBtn": "영양사님과 1:1 상담 및 건의",
+    "surveyTitle": "오늘 식사는 어땠나요?",
+    "surveyGreat": "최고",
+    "surveyNormal": "보통",
+    "surveySuccess": "소중한 피드백이 전송되었습니다!",
+    "donateSuccess": "따뜻한 기부에 참여해주셔서 감사합니다!",
+    "consultSuccess": "상담 및 건의 신청이 접수되었습니다!"
   }
 }

@@ -5,6 +5,7 @@ export default {
   "welcome": "Welcome, {name}!",
   "point": "My Balance",
   "charge": "+ Top-up",
+  "policy_title": "📢 Service Policy & Rules",
   "policy": [
     "📍 Lunch Only (11:30~13:30)",
     "📍 Pre-order: 4,500P / Walk-in: 5,500P",
@@ -209,9 +210,22 @@ export default {
         "charge": "Top-up",
         "refund": "Refund",
         "deduct": "Deduct",
+        "donate": "Donation",
         "no_info": "No info"
       },
       "empty_logs": "No transactions logged."
     }
+  },
+  "heartTable": {
+    "title": "Heart Sharing Table",
+    "subtitle": "A warm space for university students to connect and share",
+    "donateBtn": "Donate remaining points/changes",
+    "consultBtn": "1:1 Consultation with Nutritionist",
+    "surveyTitle": "How was the meal today?",
+    "surveyGreat": "Great",
+    "surveyNormal": "Normal",
+    "surveySuccess": "Thank you for your valuable feedback!",
+    "donateSuccess": "Thank you for your warm donation!",
+    "consultSuccess": "Your consultation request has been received!"
   }
 }
