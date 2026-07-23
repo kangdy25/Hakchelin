@@ -9,6 +9,7 @@ const props = defineProps<{
     title_ko: string
     title_en: string
     price: number
+    deposit_amount: number
   },
   disabled?: boolean
 }>()
@@ -25,7 +26,7 @@ const typeClass = computed(() => {
 })
 
 const title = computed(() => locale.value === 'ko' ? props.menu.title_ko : props.menu.title_en)
-const finalPrice = computed(() => props.menu.price + (selectedMain.value === 1 ? 1000 : 0))
+const finalPrice = computed(() => props.menu.price + (selectedMain.value === 1 ? 1000 : 0) + props.menu.deposit_amount)
 
 const handleReserve = () => {
   if (props.disabled) return
@@ -52,7 +53,8 @@ const handleReserve = () => {
     </div>
     
     <div class="text-[17px] font-bold my-[8px]">{{ title }}</div>
-    <div class="text-[#2E7D32] font-bold text-[14px] mb-[10px]">{{ finalPrice.toLocaleString() }}P</div>
+    <div class="text-[#2E7D32] font-bold text-[14px] mb-[2px]">{{ finalPrice.toLocaleString() }}P</div>
+    <div v-if="menu.deposit_amount" class="text-[#777] text-[11px] font-medium mb-[10px]">{{ menu.deposit_amount.toLocaleString() }}P 예약금 포함</div>
     
     <div class="mt-auto">
       <select v-model="selectedRice" class="w-full p-[10px] mt-[5px] rounded-[8px] border border-[#ddd] text-[13px] bg-[#fafafa] focus:outline-none focus:border-[#2E7D32] cursor-pointer">

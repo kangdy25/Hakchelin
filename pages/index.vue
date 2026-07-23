@@ -12,34 +12,22 @@ interface ReservePayload {
   }
 }
 
-const { t, tm, rt } = useI18n({ useScope: 'global' })
+const { t, tm, rt, locale } = useI18n({ useScope: 'global' })
 const supabase = useSupabaseClient<Database>()
 const { profile, userId, refreshProfile, adjustPoint } = useUserProfile()
 const { showAlert } = useModal()
 
-const days = ['mon', 'tue', 'wed', 'thu', 'fri']
-
-// 실제 오늘 요일 구하기 (주말이면 undefined)
-const getRealToday = () => {
-  const dayIndex = new Date().getDay()
-  const dayMap: Record<number, string> = {
-    1: 'mon',
-    2: 'tue',
-    3: 'wed',
-    4: 'thu',
-    5: 'fri'
-  }
-  return dayMap[dayIndex]
-}
-
-const realToday = getRealToday()
-const selectedDay = ref(realToday || 'mon')
+const today = new Date().toISOString().slice(0, 10)
+const selectedDate = ref('')
 const loading = ref(false)
 
-// 요일별 빈 배열로 초기화
-const dbMenus = ref<Record<string, Menu[]>>({
-  mon: [], tue: [], wed: [], thu: [], fri: []
-})
+const dbMenus = ref<Menu[]>([])
+const availableDates = computed(() => [...new Set(dbMenus.value.map(menu => menu.meal_date))])
+const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date === selectedDate.value))
+
+const formatMealDate = (date: string) => new Intl.DateTimeFormat(locale.value === 'ko' ? 'ko-KR' : 'en-US', {
+  month: 'short', day: 'numeric', weekday: 'short'
+}).format(new Date(`${date}T00:00:00`))
 
 // 한글 타입(DB 저장값)을 영문 코드(UI 뱃지용)로 변환
 const mapMenuType = (koType: string): 'kr' | 'premium' | 'takeout' => {
@@ -52,25 +40,32 @@ const mapMenuType = (koType: string): 'kr' | 'premium' | 'takeout' => {
 
 // Supabase 메뉴 불러오기
 const fetchMenus = async () => {
-  const { data, error } = await supabase.from('menus').select('*')
+  const { data, error } = await supabase
+    .from('menus')
+    .select('*')
+    .eq('is_active', true)
+    .gte('meal_date', today)
+    .order('meal_date')
+    .order('meal_time')
   if (data) {
-    const grouped: Record<string, Menu[]> = { mon: [], tue: [], wed: [], thu: [], fri: [] }
-    data.forEach((menu) => {
-      const menuItem: Menu = {
+    dbMenus.value = data.map((menu) => ({
         id: menu.id,
         day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
+        meal_date: menu.meal_date,
+        meal_time: menu.meal_time,
         type: mapMenuType(menu.type || 'kr'),
         title_ko: menu.title_ko,
         title_en: menu.title_en,
         price: Number(menu.price || 4500),
+        capacity: menu.capacity,
+        reservation_deadline: menu.reservation_deadline,
+        deposit_amount: menu.deposit_amount,
+        is_active: menu.is_active,
         created_at: menu.created_at
-      }
-
-      if (grouped[menuItem.day_of_week]) {
-        grouped[menuItem.day_of_week]?.push(menuItem)
-      }
-    })
-    dbMenus.value = grouped
+    }))
+    if (!selectedDate.value || !availableDates.value.includes(selectedDate.value)) {
+      selectedDate.value = availableDates.value[0] || ''
+    }
   } else if (error) {
     console.error('메뉴 불러오기 실패:', error)
   }
@@ -150,18 +145,18 @@ const onReserve = async (payload: ReservePayload) => {
 
     <div class="flex justify-between bg-[#f8f9fa] p-[5px] rounded-[10px] mb-[15px]">
       <button 
-        v-for="day in days" :key="day"
-        @click="selectedDay = day"
+        v-for="date in availableDates" :key="date"
+        @click="selectedDate = date"
         class="flex-1 border-none bg-transparent py-[10px] text-[16px] rounded-[8px] text-[#777] font-bold cursor-pointer transition-colors"
-        :class="{ 'bg-[#b2fab4] text-black': selectedDay === day }"
+        :class="{ 'bg-[#b2fab4] text-black': selectedDate === date }"
       >
-        <span>{{ t(`days.${day}`) }}</span>
+        <span>{{ formatMealDate(date) }}</span>
       </button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[15px] pb-6">
       <MenuCard 
-        v-for="menu in dbMenus[selectedDay]" 
+        v-for="menu in selectedMenus"
         :key="menu.id" 
         :menu="menu" 
         :disabled="loading"
@@ -170,11 +165,11 @@ const onReserve = async (payload: ReservePayload) => {
     </div>
 
     <!-- 마음을 잇는 식탁 카드는 메뉴 카드 하단에 독립적으로 w-full 상태를 유지하여 노출 -->
-    <div v-if="selectedDay === realToday" class="mt-4 pb-6 w-full">
+    <div v-if="selectedDate === today" class="mt-4 pb-6 w-full">
       <HeartTableCard />
     </div>
     
-    <div v-if="!dbMenus[selectedDay]?.length" class="text-center py-[40px] bg-white rounded-[15px] border border-[#eee] mb-6">
+    <div v-if="!selectedMenus.length" class="text-center py-[40px] bg-white rounded-[15px] border border-[#eee] mb-6">
       <div class="text-[#777] font-bold text-[13px]">{{ t('empty_menu') }}</div>
     </div>
     

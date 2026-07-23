@@ -22,32 +22,31 @@ const processing = ref(false)
 
 // 1. Menus Data & Modals
 const dbMenus = ref<Menu[]>([])
-const days = ['mon', 'tue', 'wed', 'thu', 'fri'] as const
-
-// 실제 오늘 요일 구하기 (주말이면 undefined)
-const getRealToday = () => {
-  const dayIndex = new Date().getDay()
-  const dayMap: Record<number, 'mon' | 'tue' | 'wed' | 'thu' | 'fri'> = {
-    1: 'mon',
-    2: 'tue',
-    3: 'wed',
-    4: 'thu',
-    5: 'fri'
-  }
-  return dayMap[dayIndex]
+const today = new Date().toISOString().slice(0, 10)
+const selectedDate = ref(today)
+const dayCodes = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
+const dayOfWeek = (date: string) => dayCodes[new Date(`${date}T00:00:00`).getDay()] as Menu['day_of_week']
+const toDateTimeLocal = (value: string) => {
+  const date = new Date(value)
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
-
-const realToday = getRealToday()
-const selectedDay = ref<'mon' | 'tue' | 'wed' | 'thu' | 'fri'>(realToday || 'mon')
+const defaultDeadline = (date: string) => `${date}T11:00`
 const menuModalOpen = ref(false)
 const isEditMode = ref(false)
 const menuForm = ref<Omit<Menu, 'created_at'>>({
   id: '',
-  day_of_week: realToday || 'mon',
+  day_of_week: dayOfWeek(today),
+  meal_date: today,
+  meal_time: '12:00:00',
   type: 'kr',
   title_ko: '',
   title_en: '',
-  price: 4500
+  price: 4500,
+  capacity: 100,
+  reservation_deadline: defaultDeadline(today),
+  deposit_amount: 1000,
+  is_active: true
 })
 
 // 2. Reservations (Tickets) Data
@@ -77,10 +76,16 @@ const loadMenus = async () => {
     dbMenus.value = data.map(menu => ({
       id: menu.id,
       day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
+      meal_date: menu.meal_date,
+      meal_time: menu.meal_time,
       type: (menu.type || 'kr') as 'kr' | 'premium' | 'takeout',
       title_ko: menu.title_ko,
       title_en: menu.title_en,
       price: menu.price || 4500,
+      capacity: menu.capacity,
+      reservation_deadline: menu.reservation_deadline,
+      deposit_amount: menu.deposit_amount,
+      is_active: menu.is_active,
       created_at: menu.created_at
     }))
   }
@@ -92,7 +97,7 @@ const loadReservations = async () => {
   loading.value = true
   const { data, error } = await supabase
     .from('reservations')
-    .select('id, user_id, menu_id, options, total_price, status, created_at, users(name, student_id), menus(title_ko, title_en, price)')
+    .select('id, user_id, menu_id, options, total_price, status, created_at, meal_date, meal_time, deposit_amount, refunded_amount, menu_snapshot, users(name, student_id), menus(title_ko, title_en, price)')
     .order('created_at', { ascending: false })
   if (!error && data) {
     reservations.value = data.map(r => ({
@@ -242,11 +247,17 @@ const openAddMenuModal = () => {
   isEditMode.value = false
   menuForm.value = {
     id: '',
-    day_of_week: selectedDay.value,
+    day_of_week: dayOfWeek(selectedDate.value),
+    meal_date: selectedDate.value,
+    meal_time: '12:00:00',
     type: 'kr',
     title_ko: '',
     title_en: '',
-    price: 4500
+    price: 4500,
+    capacity: 100,
+    reservation_deadline: defaultDeadline(selectedDate.value),
+    deposit_amount: 1000,
+    is_active: true
   }
   menuModalOpen.value = true
 }
@@ -256,10 +267,16 @@ const openEditMenuModal = (menu: Menu) => {
   menuForm.value = {
     id: menu.id,
     day_of_week: menu.day_of_week,
+    meal_date: menu.meal_date,
+    meal_time: menu.meal_time,
     type: mapMenuType(menu.type),
     title_ko: menu.title_ko,
     title_en: menu.title_en,
-    price: Number(menu.price)
+    price: Number(menu.price),
+    capacity: Number(menu.capacity),
+    reservation_deadline: toDateTimeLocal(menu.reservation_deadline),
+    deposit_amount: Number(menu.deposit_amount),
+    is_active: menu.is_active
   }
   menuModalOpen.value = true
 }
@@ -277,11 +294,17 @@ const saveMenu = async () => {
       const { error } = await supabase
         .from('menus')
         .update({
-          day_of_week: menuForm.value.day_of_week,
+          day_of_week: dayOfWeek(menuForm.value.meal_date),
+          meal_date: menuForm.value.meal_date,
+          meal_time: menuForm.value.meal_time,
           type: menuForm.value.type,
           title_ko: menuForm.value.title_ko,
           title_en: menuForm.value.title_en,
-          price: menuForm.value.price
+          price: menuForm.value.price,
+          capacity: menuForm.value.capacity,
+          reservation_deadline: menuForm.value.reservation_deadline,
+          deposit_amount: menuForm.value.deposit_amount,
+          is_active: menuForm.value.is_active
         })
         .eq('id', menuForm.value.id)
 
@@ -293,11 +316,17 @@ const saveMenu = async () => {
         .from('menus')
         .insert({
           id: crypto.randomUUID(),
-          day_of_week: menuForm.value.day_of_week,
+          day_of_week: dayOfWeek(menuForm.value.meal_date),
+          meal_date: menuForm.value.meal_date,
+          meal_time: menuForm.value.meal_time,
           type: menuForm.value.type,
           title_ko: menuForm.value.title_ko,
           title_en: menuForm.value.title_en,
-          price: menuForm.value.price
+          price: menuForm.value.price,
+          capacity: menuForm.value.capacity,
+          reservation_deadline: menuForm.value.reservation_deadline,
+          deposit_amount: menuForm.value.deposit_amount,
+          is_active: menuForm.value.is_active
         })
 
       if (error) throw error
@@ -321,7 +350,7 @@ const deleteMenu = async (id: string) => {
   try {
     const { error } = await supabase
       .from('menus')
-      .delete()
+      .update({ is_active: false })
       .eq('id', id)
 
     if (error) throw error
@@ -524,19 +553,11 @@ const formatDate = (dateStr: string) => {
 const statusClass: Record<string, string> = {
   reserved: 'bg-green-100 text-green-800 border-green-200',
   used: 'bg-blue-100 text-blue-800 border-blue-200',
-  cancelled: 'bg-red-100 text-red-800 border-red-200'
+  cancelled: 'bg-red-100 text-red-800 border-red-200',
+  no_show: 'bg-amber-100 text-amber-800 border-amber-200'
 }
 
-const menuItemsByDay = computed(() => {
-  const grouped: Record<'mon' | 'tue' | 'wed' | 'thu' | 'fri', Menu[]> = { mon: [], tue: [], wed: [], thu: [], fri: [] }
-  dbMenus.value.forEach(menu => {
-    const dayGroup = grouped[menu.day_of_week]
-    if (dayGroup) {
-      dayGroup.push(menu)
-    }
-  })
-  return grouped
-})
+const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date === selectedDate.value))
 </script>
 
 <template>
@@ -575,17 +596,9 @@ const menuItemsByDay = computed(() => {
       <!-- 1. TAB: MENUS (식단 관리) -->
       <div v-if="activeTab === 'menus'">
         <div class="flex justify-between items-center mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-          <!-- Day switch tabs -->
-          <div class="flex gap-2">
-            <button
-              v-for="day in days"
-              :key="day"
-              @click="selectedDay = day"
-              class="px-3.5 py-2 text-sm font-bold rounded-xl transition-all"
-              :class="selectedDay === day ? 'bg-[#E8F5E9] text-[#2E7D32]' : 'text-gray-500 hover:bg-gray-50'"
-            >
-              {{ t(`days.${day}`) }}{{ t('admin.menus.day_suffix') }}
-            </button>
+          <div>
+            <label class="block text-[11px] font-bold text-gray-400 mb-1">식사 날짜</label>
+            <input v-model="selectedDate" type="date" class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold" />
           </div>
           
           <button
@@ -597,9 +610,9 @@ const menuItemsByDay = computed(() => {
         </div>
 
         <!-- Menu Grid -->
-        <div v-if="menuItemsByDay[selectedDay]?.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div v-if="selectedMenus.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <div
-            v-for="menu in menuItemsByDay[selectedDay]"
+            v-for="menu in selectedMenus"
             :key="menu.id"
             class="bg-white border border-gray-100 rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all flex flex-col justify-between"
           >
@@ -616,6 +629,8 @@ const menuItemsByDay = computed(() => {
               <p class="text-sm text-gray-500 font-semibold mt-1">
                 {{ locale === 'ko' ? menu.title_en : menu.title_ko }}
               </p>
+              <p class="text-xs text-gray-500 font-semibold mt-3">{{ menu.meal_date }} · {{ menu.meal_time.slice(0, 5) }} · 정원 {{ menu.capacity }}명</p>
+              <p class="text-[11px] text-gray-400 mt-1">예약 마감: {{ formatDate(menu.reservation_deadline) }}</p>
             </div>
 
             <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-50">
@@ -640,7 +655,7 @@ const menuItemsByDay = computed(() => {
 
         <div v-else class="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
           <div class="text-4xl mb-4">🍽️</div>
-          <p class="text-gray-500 font-bold text-sm">{{ t('admin.menus.no_menus', { day: t(`days.${selectedDay}`) }) }}</p>
+          <p class="text-gray-500 font-bold text-sm">선택한 날짜에 등록된 메뉴가 없습니다.</p>
           <button @click="openAddMenuModal" class="mt-4 px-4 py-2 text-xs font-bold text-[#2E7D32] hover:underline">
             {{ t('admin.menus.first_menu') }}
           </button>
@@ -697,7 +712,7 @@ const menuItemsByDay = computed(() => {
                   <!-- Menu info -->
                   <td class="py-4 px-6">
                     <div class="truncate max-w-[200px] font-bold text-gray-900">{{ locale === 'ko' ? (res.menus?.title_ko || t('admin.tickets.table.deleted_menu')) : (res.menus?.title_en || t('admin.tickets.table.deleted_menu')) }}</div>
-                    <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(res.created_at || '') }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">{{ res.meal_date || '-' }} {{ res.meal_time?.slice(0, 5) || '' }}</div>
                   </td>
                   <!-- Price & Options -->
                   <td class="py-4 px-6">
@@ -915,15 +930,21 @@ const menuItemsByDay = computed(() => {
         <h3 class="text-xl font-black text-gray-900 mb-5">{{ isEditMode ? t('admin.menus.edit_menu') : t('admin.menus.new_menu') }}</h3>
         
         <form @submit.prevent="saveMenu" class="space-y-4 text-sm font-semibold">
-          <!-- Day -->
+          <!-- Date and time -->
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.menus.fields.day') }}</label>
-            <select
-              v-model="menuForm.day_of_week"
-              class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"
-            >
-              <option v-for="day in days" :key="day" :value="day">{{ t(`days.${day}`) }}{{ t('admin.menus.day_suffix') }}</option>
-            </select>
+            <label class="block text-xs font-bold text-gray-500 mb-1">식사 날짜</label>
+            <input v-model="menuForm.meal_date" type="date" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 mb-1">식사 시간</label>
+              <input v-model="menuForm.meal_time" type="time" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 mb-1">예약 정원</label>
+              <input v-model.number="menuForm.capacity" type="number" min="1" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+            </div>
           </div>
 
           <!-- Type -->
@@ -937,6 +958,17 @@ const menuItemsByDay = computed(() => {
               <option value="premium">{{ t('menu_types.premium') }}</option>
               <option value="takeout">{{ t('menu_types.takeout') }}</option>
             </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 mb-1">예약 마감</label>
+              <input v-model="menuForm.reservation_deadline" type="datetime-local" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 mb-1">예약금</label>
+              <input v-model.number="menuForm.deposit_amount" type="number" min="0" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+            </div>
           </div>
 
           <!-- KO Title -->

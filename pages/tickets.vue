@@ -24,13 +24,15 @@ const filteredReservations = computed(() => {
 const statusLabel = computed<Record<string, string>>(() => ({
   reserved: t('status.reserved'),
   used: t('status.used'),
-  cancelled: t('status.cancelled')
+  cancelled: t('status.cancelled'),
+  no_show: '노쇼'
 }))
 
 const statusClass: Record<string, string> = {
   reserved: 'bg-[#E8F5E9] text-[#2E7D32]',
   used: 'bg-[#E3F2FD] text-[#1565C0]',
-  cancelled: 'bg-[#FCE4EC] text-[#C2185B]'
+  cancelled: 'bg-[#FCE4EC] text-[#C2185B]',
+  no_show: 'bg-amber-100 text-amber-800'
 }
 
 const riceLabel = (value?: number) => {
@@ -69,7 +71,7 @@ const fetchReservations = async () => {
 
   const { data, error } = await supabase
     .from('reservations')
-    .select('id, user_id, menu_id, options, total_price, status, created_at')
+    .select('id, user_id, menu_id, options, total_price, status, created_at, meal_date, meal_time, deposit_amount, refunded_amount, menu_snapshot')
     .eq('user_id', userId.value)
     .order('created_at', { ascending: false })
 
@@ -194,7 +196,7 @@ watch(
 
         <div class="flex items-start justify-between gap-3 mb-4">
           <div>
-            <div class="text-[12px] text-[#777] font-bold mb-1">{{ formatDate(reservation.created_at || '') }}</div>
+            <div class="text-[12px] text-[#777] font-bold mb-1">{{ reservation.meal_date || formatDate(reservation.created_at || '') }} {{ reservation.meal_time?.slice(0, 5) || '' }}</div>
             <h2 class="text-[18px] font-black text-gray-800 leading-snug">{{ menuTitle(reservation) }}</h2>
           </div>
           <span class="shrink-0 text-[12px] font-bold px-3 py-1.5 rounded-lg" :class="statusClass[reservation.status || 'reserved']">

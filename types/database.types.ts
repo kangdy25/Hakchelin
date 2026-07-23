@@ -13,11 +13,17 @@ export interface User {
 
 export interface Menu {
   id: string
-  day_of_week: 'mon' | 'tue' | 'wed' | 'thu' | 'fri'
+  day_of_week: string
+  meal_date: string
+  meal_time: string
   type: 'kr' | 'premium' | 'takeout'
   title_ko: string;
   title_en: string;
   price: number;
+  capacity: number
+  reservation_deadline: string
+  deposit_amount: number
+  is_active: boolean
   created_at?: string | null
 }
 
@@ -31,7 +37,17 @@ export interface Reservation {
     [key: string]: any
   }
   total_price: number
-  status: 'reserved' | 'used' | 'cancelled' | string | null
+  status: 'reserved' | 'used' | 'cancelled' | 'no_show' | string | null
+  meal_date?: string | null
+  meal_time?: string | null
+  deposit_amount?: number | null
+  refunded_amount?: number | null
+  menu_snapshot?: {
+    title_ko?: string
+    title_en?: string
+    type?: string
+    price?: number
+  } | null
   created_at: string | null
   // Joins
   users?: {

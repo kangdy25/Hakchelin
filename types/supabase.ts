@@ -16,28 +16,46 @@ export type Database = {
     Tables: {
       menus: {
         Row: {
+          capacity: number
           created_at: string | null
           day_of_week: string | null
+          deposit_amount: number
           id: string
+          is_active: boolean
+          meal_date: string
+          meal_time: string
           price: number | null
+          reservation_deadline: string
           title_en: string
           title_ko: string
           type: string | null
         }
         Insert: {
+          capacity?: number
           created_at?: string | null
           day_of_week?: string | null
+          deposit_amount?: number
           id?: string
+          is_active?: boolean
+          meal_date: string
+          meal_time?: string
           price?: number | null
+          reservation_deadline?: string
           title_en: string
           title_ko: string
           type?: string | null
         }
         Update: {
+          capacity?: number
           created_at?: string | null
           day_of_week?: string | null
+          deposit_amount?: number
           id?: string
+          is_active?: boolean
+          meal_date?: string
+          meal_time?: string
           price?: number | null
+          reservation_deadline?: string
           title_en?: string
           title_ko?: string
           type?: string | null
@@ -99,30 +117,54 @@ export type Database = {
       }
       reservations: {
         Row: {
+          cancelled_at: string | null
           created_at: string | null
+          deposit_amount: number
+          enforces_meal_limit: boolean
           id: string
+          meal_date: string | null
+          meal_time: string | null
           menu_id: string | null
+          menu_snapshot: Json
           options: Json
+          refunded_amount: number
           status: string | null
           total_price: number
+          used_at: string | null
           user_id: string | null
         }
         Insert: {
+          cancelled_at?: string | null
           created_at?: string | null
+          deposit_amount?: number
+          enforces_meal_limit?: boolean
           id?: string
+          meal_date?: string | null
+          meal_time?: string | null
           menu_id?: string | null
+          menu_snapshot?: Json
           options?: Json
+          refunded_amount?: number
           status?: string | null
           total_price: number
+          used_at?: string | null
           user_id?: string | null
         }
         Update: {
+          cancelled_at?: string | null
           created_at?: string | null
+          deposit_amount?: number
+          enforces_meal_limit?: boolean
           id?: string
+          meal_date?: string | null
+          meal_time?: string | null
           menu_id?: string | null
+          menu_snapshot?: Json
           options?: Json
+          refunded_amount?: number
           status?: string | null
           total_price?: number
+          used_at?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -256,6 +298,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { p_user_id: string }; Returns: boolean }
+      process_no_shows: { Args: Record<PropertyKey, never>; Returns: number }
       reserve_menu: {
         Args: {
           p_menu_id: string
