@@ -92,7 +92,8 @@ export default {
       "menus": "Menus",
       "tickets": "Tickets",
       "users": "Users & Points",
-      "stats": "Sales & Stats"
+      "stats": "Sales & Stats",
+      "ai": "AI Control"
     },
     "menus": {
       "day_suffix": "",
@@ -214,6 +215,19 @@ export default {
         "no_info": "No info"
       },
       "empty_logs": "No transactions logged."
+    }
+  },
+  "chat": {
+    "title": "Meal Helper",
+    "subtitle": "Ask about menus, tickets, and points",
+    "greeting": "Hi! Ask me about today's menu, your meal tickets, or your point balance.",
+    "placeholder": "Ask a meal-service question",
+    "new_conversation": "New conversation",
+    "close": "Close",
+    "errors": {
+      "login": "We could not verify your login. Refresh the page and try again.",
+      "default": "We could not load a chatbot response. Please try again shortly.",
+      "empty": "I could not generate an answer. Please rephrase your question."
     }
   },
   "heartTable": {

@@ -12,7 +12,7 @@ const supabase = useSupabaseClient<Database>()
 const { refreshProfile, userId } = useUserProfile()
 
 // Tabs
-const tabs = ['menus', 'tickets', 'users', 'stats'] as const
+const tabs = ['menus', 'tickets', 'users', 'stats', 'ai'] as const
 type Tab = typeof tabs[number]
 const activeTab = ref<Tab>('menus')
 
@@ -919,6 +919,9 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
           </div>
         </div>
       </div>
+
+      <!-- 5. TAB: AI CONTROL -->
+      <AdminAiControl v-if="activeTab === 'ai'" />
 
     </div>
 

@@ -115,6 +115,122 @@ export type Database = {
           },
         ]
       }
+      ai_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          estimated_cost_usd: number | null
+          id: string
+          input_tokens: number | null
+          latency_ms: number
+          model: string | null
+          output_tokens: number | null
+          prompt_version: number | null
+          request_id: string
+          stage: string
+          status_code: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number
+          model?: string | null
+          output_tokens?: number | null
+          prompt_version?: number | null
+          request_id: string
+          stage: string
+          status_code: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          id?: string
+          input_tokens?: number | null
+          latency_ms?: number
+          model?: string | null
+          output_tokens?: number | null
+          prompt_version?: number | null
+          request_id?: string
+          stage?: string
+          status_code?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompt_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          prompt_content: string
+          service_name: string
+          temperature: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          prompt_content: string
+          service_name: string
+          temperature?: number
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          prompt_content?: string
+          service_name?: string
+          temperature?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       reservations: {
         Row: {
           cancelled_at: string | null

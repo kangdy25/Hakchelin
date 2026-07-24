@@ -92,7 +92,8 @@ export default {
       "menus": "식단 관리",
       "tickets": "식권 조회/사용",
       "users": "사용자/포인트",
-      "stats": "매출/통계"
+      "stats": "매출/통계",
+      "ai": "AI 관리"
     },
     "menus": {
       "day_suffix": "요일",
@@ -214,6 +215,19 @@ export default {
         "no_info": "정보 없음"
       },
       "empty_logs": "트랜잭션 기록이 없습니다."
+    }
+  },
+  "chat": {
+    "title": "식사 도우미",
+    "subtitle": "메뉴, 내 식권, 포인트를 도와드려요",
+    "greeting": "안녕하세요! 오늘 메뉴, 내 식권, 포인트에 관해 물어보세요.",
+    "placeholder": "학식 관련 질문을 입력하세요",
+    "new_conversation": "새 대화",
+    "close": "닫기",
+    "errors": {
+      "login": "로그인 정보를 확인할 수 없습니다. 새로고침 후 다시 시도해주세요.",
+      "default": "챗봇 응답을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      "empty": "답변을 생성하지 못했습니다. 질문을 조금 다르게 입력해주세요."
     }
   },
   "heartTable": {

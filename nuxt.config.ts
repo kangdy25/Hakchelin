@@ -29,7 +29,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      tossPaymentsClientKey: process.env.NUXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY || ''
+      tossPaymentsClientKey: process.env.NUXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY || '',
+      supabaseUrl: process.env.SUPABASE_URL || ''
     }
   },
 
