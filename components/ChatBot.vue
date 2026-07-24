@@ -24,7 +24,9 @@ const makeConversationId = () => crypto.randomUUID()
 const renderMarkdown = (content: string) => {
   const normalized = content
     .replace(/\r/g, '')
-    .replace(/(^|[^\n])\*\s+(?=\*\*)/g, '$1\n- ')
+    // Gemini occasionally starts a Markdown list directly after a sentence.
+    // Normalise it before rendering so "안내드립니다.- **항목**" remains readable.
+    .replace(/(^|[^\n])[-*]\s+(?=\*\*)/g, (_match, prefix) => `${prefix}${prefix ? '\n' : ''}- `)
   const inline = (value: string) => value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -85,20 +87,23 @@ const resetConversation = () => {
 const send = async () => {
   const message = input.value.trim()
   if (!message || loading.value || message.length > 100 || !conversationId.value) return
-  const { data: sessionData } = await supabase.auth.getSession()
-  const token = sessionData.session?.access_token
-  if (!token || !runtimeConfig.public.supabaseUrl) {
-    messages.value.push({ role: 'assistant', content: t('chat.errors.login') })
-    return
-  }
-
-  messages.value.push({ role: 'user', content: message })
-  messages.value.push({ role: 'assistant', content: '' })
-  input.value = ''
+  // Lock before the first await. Otherwise two fast Enter/click events can both
+  // pass the guard while getSession() is still pending.
   loading.value = true
-  await scrollToBottom()
 
   try {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token || !runtimeConfig.public.supabaseUrl) {
+      messages.value.push({ role: 'assistant', content: t('chat.errors.login') })
+      return
+    }
+
+    messages.value.push({ role: 'user', content: message })
+    messages.value.push({ role: 'assistant', content: '' })
+    input.value = ''
+    await scrollToBottom()
+
     const response = await fetch(`${runtimeConfig.public.supabaseUrl}/functions/v1/chat`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -112,11 +117,8 @@ const send = async () => {
     if (!reader) throw new Error(t('chat.errors.default'))
     const decoder = new TextDecoder()
     let buffer = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-      const events = buffer.split('\n\n')
+    const processEvents = async (source: string) => {
+      const events = source.split('\n\n')
       buffer = events.pop() || ''
       for (const event of events) {
         const type = event.match(/^event: (.+)$/m)?.[1]
@@ -132,6 +134,16 @@ const send = async () => {
         }
       }
     }
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      await processEvents(buffer)
+    }
+    // Flush a multibyte character held by TextDecoder and handle the final SSE
+    // event even if a proxy closes the stream without its trailing delimiter.
+    buffer += decoder.decode()
+    if (buffer.trim()) await processEvents(`${buffer}\n\n`)
     const assistant = messages.value[messages.value.length - 1]
     if (assistant?.role === 'assistant' && !assistant.content) assistant.content = t('chat.errors.empty')
   } catch (error) {

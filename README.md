@@ -48,6 +48,7 @@
 ## AI 식사 도우미 설정
 
 챗봇은 로그인 사용자의 메뉴·식권·포인트 조회만 지원하며, Supabase Edge Function에서 Gemini API를 호출합니다. 배포 후 Supabase 프로젝트 Secret에 Gemini 키를 설정해야 실제 응답이 활성화됩니다.
+응답 프롬프트와 가드레일은 관리자 화면에서 수정할 수 없으며, 개발자가 코드와 Supabase 마이그레이션으로만 변경·배포합니다.
 
 ```bash
 supabase secrets set GEMINI_API_KEY=your_gemini_api_key
