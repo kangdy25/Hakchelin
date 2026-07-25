@@ -129,6 +129,11 @@ const send = async () => {
         if (type === 'token' && assistant?.role === 'assistant') {
           assistant.content += String(data.text || '')
           await scrollToBottom()
+        } else if (type === 'done' && assistant?.role === 'assistant' && typeof data.text === 'string') {
+          // Reconcile with the server's complete answer. This protects the last
+          // token when a streamed SSE chunk is cut off at a network boundary.
+          assistant.content = data.text
+          await scrollToBottom()
         } else if (type === 'error') {
           throw new Error(data.message || t('chat.errors.default'))
         }

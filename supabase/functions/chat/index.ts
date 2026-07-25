@@ -280,7 +280,10 @@ Deno.serve(async (req) => {
           model: MAIN_MODEL, prompt_version: prompt.version, input_tokens: latestUsage.input,
           output_tokens: latestUsage.output, latency_ms: Date.now() - mainStartedAt
         })
-        controller.enqueue(sse('done', { requestId }))
+        // Send the canonical complete answer as a final reconciliation payload.
+        // The client renders tokens immediately, then replaces its draft with
+        // this value so a truncated final SSE chunk cannot drop the last letter.
+        controller.enqueue(sse('done', { requestId, text: answer }))
       } catch (error) {
         await log('main_chat', 502, { model: MAIN_MODEL, prompt_version: prompt.version, latency_ms: Date.now() - mainStartedAt, error_message: toMessage(error) })
         controller.enqueue(sse('error', { message: '응답 생성 중 오류가 발생했습니다.' }))
