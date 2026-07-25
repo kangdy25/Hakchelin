@@ -84,6 +84,14 @@ const resetConversation = () => {
   loaded.value = true
 }
 
+const submitOnEnter = (event: KeyboardEvent) => {
+  // Korean/Japanese IMEs use Enter to commit the final composing character.
+  // Sending during that composition drops the last syllable from the message.
+  if (event.isComposing || event.keyCode === 229) return
+  event.preventDefault()
+  void send()
+}
+
 const send = async () => {
   const message = input.value.trim()
   if (!message || loading.value || message.length > 100 || !conversationId.value) return
@@ -198,7 +206,7 @@ watch(userId, () => {
 
         <form @submit.prevent="send" class="border-t border-gray-100 bg-white p-3">
           <div class="flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-[#2E7D32]">
-            <textarea v-model="input" :disabled="loading" :maxlength="100" rows="1" :placeholder="t('chat.placeholder')" class="max-h-24 flex-1 resize-none bg-transparent text-sm outline-none" @keydown.enter.exact.prevent="send" />
+            <textarea v-model="input" :disabled="loading" :maxlength="100" rows="1" :placeholder="t('chat.placeholder')" class="max-h-24 flex-1 resize-none bg-transparent text-sm outline-none" @keydown.enter.exact="submitOnEnter" />
             <button :disabled="loading || !input.trim()" class="rounded-xl bg-[#2E7D32] px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">↑</button>
           </div>
           <p class="mt-1 text-right text-[10px] text-gray-400">{{ input.length }}/100</p>
