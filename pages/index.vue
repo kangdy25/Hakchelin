@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import type { Database, Menu } from '~/types/database.types'
+import type { Menu } from '~/types/api'
 
 interface ReservePayload {
   menu_id: string

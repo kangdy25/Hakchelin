@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Database, Reservation } from '~/types/database.types'
+import type { Reservation } from '~/types/api'
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const api = useApi()

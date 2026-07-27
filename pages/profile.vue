@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Reservation } from '~/types/database.types'
+import type { Reservation } from '~/types/api'
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const api = useApi()

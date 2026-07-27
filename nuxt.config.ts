@@ -41,7 +41,10 @@ export default defineNuxtConfig({
   ],
 
   supabase: {
-    redirect: false
+    redirect: false,
+    // DB 생성 타입은 레거시 Supabase 어댑터에서만 사용한다.
+    // 화면은 types/api.ts의 API 계약에만 의존한다.
+    types: '~/types/supabase.ts'
   },
 
   i18n: {

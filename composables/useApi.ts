@@ -1,6 +1,6 @@
-import type { Database, Menu, Reservation, Transaction, User } from '~/types/database.types'
+import type { Database } from '~/types/supabase'
+import type { CreateMenuInput, Menu, MealOptions, Reservation, Transaction, UpdateMenuInput, User } from '~/types/api'
 
-type MealOptions = { rice?: number; main?: number; [key: string]: unknown }
 type ChatRole = 'user' | 'assistant'
 type ChatMessage = { role: ChatRole; content: string }
 type AiLog = {
@@ -13,9 +13,6 @@ type AiLog = {
   error_message: string | null
   users?: { name: string; student_id: string } | null
 }
-
-type CreateMenuInput = Omit<Menu, 'created_at'>
-type UpdateMenuInput = Omit<CreateMenuInput, 'id'>
 
 const getErrorMessage = (error: unknown, fallback = '요청 처리 중 오류가 발생했습니다.') => {
   if (error instanceof Error) return error.message

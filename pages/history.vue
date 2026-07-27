@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import type { Database } from '~/types/database.types'
 
 const { t, locale } = useI18n({ useScope: 'global' })
 const api = useApi()
 const { userId } = useUserProfile()
 
-type Transaction = {
-  id: string
-  amount: number
-  type: 'charge' | 'deduct' | 'refund'
-  description: string | null
-  created_at: string
-}
+import type { Transaction } from '~/types/api'
 
 const loading = ref(true)
 const errorMessage = ref('')

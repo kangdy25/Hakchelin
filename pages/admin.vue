@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import type { Database, Menu, Reservation, User, Transaction } from '~/types/database.types'
+import type { Menu, Reservation, User, Transaction } from '~/types/api'
 
 // Admin middleware protection
 definePageMeta({
