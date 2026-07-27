@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
-import type { Database } from '~/types/database.types'
 
 type ChatMessage = { role: 'user' | 'assistant', content: string }
 
 const { t } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<Database>()
-const runtimeConfig = useRuntimeConfig()
+const api = useApi()
 const { userId } = useUserProfile()
 
 const isOpen = ref(false)
@@ -55,17 +53,10 @@ const initializeConversation = () => {
 
 const loadHistory = async () => {
   if (!userId.value || !conversationId.value || loaded.value) return
-  const { data, error } = await supabase
-    .from('chat_messages')
-    .select('role, content')
-    .eq('user_id', userId.value)
-    .eq('conversation_id', conversationId.value)
-    .order('created_at', { ascending: true })
-    .limit(30)
-  if (!error && data) {
-    messages.value = data
-      .filter(item => item.role === 'user' || item.role === 'assistant')
-      .map(item => ({ role: item.role as 'user' | 'assistant', content: item.content }))
+  try {
+    messages.value = await api.chat.getMessages(conversationId.value)
+  } catch {
+    messages.value = []
   }
   loaded.value = true
   await scrollToBottom()
@@ -111,23 +102,12 @@ const send = async () => {
   loading.value = true
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token
-    if (!token || !runtimeConfig.public.supabaseUrl) {
-      messages.value.push({ role: 'assistant', content: t('chat.errors.login') })
-      return
-    }
-
     messages.value.push({ role: 'user', content: message })
     messages.value.push({ role: 'assistant', content: '' })
     input.value = ''
     await scrollToBottom()
 
-    const response = await fetch(`${runtimeConfig.public.supabaseUrl}/functions/v1/chat`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, conversationId: conversationId.value })
-    })
+    const response = await api.chat.stream({ message, conversationId: conversationId.value })
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
       throw new Error(body.error || t('chat.errors.default'))

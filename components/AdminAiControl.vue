@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { Database } from '~/types/database.types'
 
 type AiLog = {
   id: string
@@ -13,7 +12,7 @@ type AiLog = {
   users?: { name: string, student_id: string } | null
 }
 
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const { locale } = useI18n({ useScope: 'global' })
 const loading = ref(true)
 const logs = ref<AiLog[]>([])
@@ -27,11 +26,11 @@ const formatDate = (value: string) => new Intl.DateTimeFormat(isKo.value ? 'ko-K
 const load = async () => {
   loading.value = true
   error.value = ''
-  const { data: logRows, error: logError } = await supabase
-    .from('ai_logs').select('id, created_at, stage, model, latency_ms, status_code, error_message, users(name, student_id)')
-    .order('created_at', { ascending: false }).limit(50)
-  if (!logError && logRows) logs.value = logRows as unknown as AiLog[]
-  if (logError) error.value = logError.message
+  try {
+    logs.value = await api.ai.getLogs()
+  } catch (loadError) {
+    error.value = api.getErrorMessage(loadError)
+  }
   loading.value = false
 }
 

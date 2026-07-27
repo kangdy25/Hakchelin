@@ -2,7 +2,7 @@
 import type { Database } from '~/types/database.types'
 
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const { userId } = useUserProfile()
 
 type Transaction = {
@@ -36,22 +36,17 @@ const fetchTransactions = async () => {
   loading.value = true
   errorMessage.value = ''
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('id, amount, type, description, created_at')
-    .eq('user_id', userId.value)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    errorMessage.value = error.message
-  } else {
-    transactions.value = (data || []).map(tx => ({
+  try {
+    const data = await api.transactions.getMine()
+    transactions.value = data.map(tx => ({
       id: tx.id,
       amount: tx.amount,
       type: (tx.type || 'deduct') as 'charge' | 'deduct' | 'refund',
       description: tx.description,
       created_at: tx.created_at || ''
     }))
+  } catch (error) {
+    errorMessage.value = api.getErrorMessage(error)
   }
 
   loading.value = false

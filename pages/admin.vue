@@ -8,7 +8,7 @@ definePageMeta({
 })
 
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const { refreshProfile, userId } = useUserProfile()
 
 // Tabs
@@ -71,8 +71,8 @@ const transactions = ref<Transaction[]>([])
 // Load Menus
 const loadMenus = async () => {
   loading.value = true
-  const { data, error } = await supabase.from('menus').select('*')
-  if (!error && data) {
+  try {
+    const data = await api.menus.get()
     dbMenus.value = data.map(menu => ({
       id: menu.id,
       day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
@@ -88,6 +88,8 @@ const loadMenus = async () => {
       is_active: menu.is_active,
       created_at: menu.created_at
     }))
+  } catch (error) {
+    console.error('메뉴를 불러오지 못했습니다.', error)
   }
   loading.value = false
 }
@@ -95,15 +97,14 @@ const loadMenus = async () => {
 // Load Reservations
 const loadReservations = async () => {
   loading.value = true
-  const { data, error } = await supabase
-    .from('reservations')
-    .select('id, user_id, menu_id, options, total_price, status, created_at, meal_date, meal_time, deposit_amount, refunded_amount, menu_snapshot, users(name, student_id), menus(title_ko, title_en, price)')
-    .order('created_at', { ascending: false })
-  if (!error && data) {
+  try {
+    const data = await api.reservations.getAll()
     reservations.value = data.map(r => ({
       ...r,
       options: (r.options || {}) as { rice?: number; main?: number; [key: string]: any }
     }))
+  } catch (error) {
+    console.error('식권을 불러오지 못했습니다.', error)
   }
   loading.value = false
 }
@@ -111,12 +112,10 @@ const loadReservations = async () => {
 // Load Users
 const loadUsers = async () => {
   loading.value = true
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .order('student_id', { ascending: true })
-  if (!error && data) {
-    users.value = data
+  try {
+    users.value = await api.users.getAll()
+  } catch (error) {
+    console.error('사용자를 불러오지 못했습니다.', error)
   }
   loading.value = false
 }
@@ -124,13 +123,10 @@ const loadUsers = async () => {
 // Load Stats & Transactions
 const loadTransactions = async () => {
   loading.value = true
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('id, user_id, amount, type, description, created_at, users(name, student_id)')
-    .order('created_at', { ascending: false })
-    .limit(50)
-  if (!error && data) {
-    transactions.value = data
+  try {
+    transactions.value = await api.transactions.getAll()
+  } catch (error) {
+    console.error('거래 내역을 불러오지 못했습니다.', error)
   }
   loading.value = false
 }
@@ -291,9 +287,7 @@ const saveMenu = async () => {
   try {
     if (isEditMode.value) {
       // Update
-      const { error } = await supabase
-        .from('menus')
-        .update({
+      await api.menus.update(menuForm.value.id, {
           day_of_week: dayOfWeek(menuForm.value.meal_date),
           meal_date: menuForm.value.meal_date,
           meal_time: menuForm.value.meal_time,
@@ -306,15 +300,10 @@ const saveMenu = async () => {
           deposit_amount: menuForm.value.deposit_amount,
           is_active: menuForm.value.is_active
         })
-        .eq('id', menuForm.value.id)
-
-      if (error) throw error
       alert(t('admin.menus.alerts.updated'))
     } else {
       // Create
-      const { error } = await supabase
-        .from('menus')
-        .insert({
+      await api.menus.create({
           id: crypto.randomUUID(),
           day_of_week: dayOfWeek(menuForm.value.meal_date),
           meal_date: menuForm.value.meal_date,
@@ -328,8 +317,6 @@ const saveMenu = async () => {
           deposit_amount: menuForm.value.deposit_amount,
           is_active: menuForm.value.is_active
         })
-
-      if (error) throw error
       alert(t('admin.menus.alerts.saved'))
     }
     menuModalOpen.value = false
@@ -348,12 +335,7 @@ const deleteMenu = async (id: string) => {
 
   processing.value = true
   try {
-    const { error } = await supabase
-      .from('menus')
-      .update({ is_active: false })
-      .eq('id', id)
-
-    if (error) throw error
+    await api.menus.deactivate(id)
     alert(t('admin.menus.alerts.deleted'))
     await loadMenus()
   } catch (err: unknown) {
@@ -388,8 +370,7 @@ const handleUseTicket = async (id: string) => {
   if (!confirm(t('admin.tickets.actions.confirm_meal'))) return
   processing.value = true
   try {
-    const { error } = await supabase.rpc('admin_use_ticket', { p_reservation_id: id })
-    if (error) throw error
+    await api.reservations.useTicket(id)
     alert(t('admin.tickets.actions.success_meal'))
     await loadReservations()
   } catch (err: unknown) {
@@ -403,8 +384,7 @@ const handleCancelTicket = async (id: string) => {
   if (!confirm(t('admin.tickets.actions.confirm_cancel'))) return
   processing.value = true
   try {
-    const { error } = await supabase.rpc('admin_cancel_ticket', { p_reservation_id: id })
-    if (error) throw error
+    await api.reservations.cancelTicket(id)
     alert(t('admin.tickets.actions.success_cancel'))
     await loadReservations()
   } catch (err: unknown) {
@@ -443,13 +423,11 @@ const adjustUserPoints = async () => {
 
   processing.value = true
   try {
-    const { error } = await supabase.rpc('admin_adjust_points', {
-      p_user_id: selectedUser.value.id,
-      p_amount: pointAdjustAmount.value,
-      p_description: pointAdjustDesc.value
+    await api.users.adjustPoints({
+      userId: selectedUser.value.id,
+      amount: pointAdjustAmount.value,
+      description: pointAdjustDesc.value
     })
-
-    if (error) throw error
     alert(t('admin.users.actions.adjust_success', { amount: `${pointAdjustAmount.value > 0 ? '+' : ''}${pointAdjustAmount.value.toLocaleString()}` }))
     pointModalOpen.value = false
     await loadUsers()
@@ -476,12 +454,7 @@ const toggleUserRole = async (userItem: User) => {
 
   processing.value = true
   try {
-    const { error } = await supabase.rpc('admin_update_user_role', {
-      p_user_id: userItem.id,
-      p_role: newRole
-    })
-
-    if (error) throw error
+    await api.users.updateRole({ userId: userItem.id, role: newRole })
     alert(t('admin.users.actions.success_role'))
     await loadUsers()
     await refreshProfile()

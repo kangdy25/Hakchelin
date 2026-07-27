@@ -2,7 +2,7 @@
 import type { Database, Reservation } from '~/types/database.types'
 
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const { userId, refreshProfile, adjustPoint } = useUserProfile()
 const { showAlert, showConfirm } = useModal()
 
@@ -69,16 +69,9 @@ const fetchReservations = async () => {
   loading.value = true
   errorMessage.value = ''
 
-  const { data, error } = await supabase
-    .from('reservations')
-    .select('id, user_id, menu_id, options, total_price, status, created_at, meal_date, meal_time, deposit_amount, refunded_amount, menu_snapshot')
-    .eq('user_id', userId.value)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    errorMessage.value = error.message
-  } else {
-    const rows: Reservation[] = (data || []).map(r => ({
+  try {
+    const data = await api.reservations.getMine()
+    const rows: Reservation[] = data.map(r => ({
       ...r,
       options: (r.options || {}) as { rice?: number; main?: number; [key: string]: any },
       menus: null
@@ -91,20 +84,14 @@ const fetchReservations = async () => {
       return
     }
 
-    const { data: menus, error: menuError } = await supabase
-      .from('menus')
-      .select('id, type, title_ko, title_en, day_of_week, price')
-      .in('id', menuIds)
-
-    if (menuError) {
-      errorMessage.value = menuError.message
-    } else {
-      const menuMap = new Map((menus || []).map(menu => [menu.id, menu]))
-      reservations.value = rows.map(reservation => ({
-        ...reservation,
-        menus: reservation.menu_id ? menuMap.get(reservation.menu_id) || null : null
-      }))
-    }
+    const menus = await api.menus.getByIds(menuIds)
+    const menuMap = new Map(menus.map(menu => [menu.id, menu]))
+    reservations.value = rows.map(reservation => ({
+      ...reservation,
+      menus: reservation.menu_id ? menuMap.get(reservation.menu_id) || null : null
+    }))
+  } catch (error) {
+    errorMessage.value = api.getErrorMessage(error)
   }
 
   loading.value = false
@@ -120,22 +107,14 @@ const handleCancel = async (reservation: Reservation) => {
 
   cancellingId.value = reservation.id
   try {
-    const { error } = await supabase.rpc('cancel_reservation', {
-      p_reservation_id: reservation.id,
-      p_user_id: currentUserId
-    })
-
-    if (error) {
-      await showAlert(t('payment.cancel_error') + ': ' + error.message, { title: t('payment.cancel_error'), type: 'error' })
-      return
-    }
+    await api.reservations.cancel(reservation.id)
 
     await showAlert(t('payment.cancel_success'), { title: t('status.cancelled'), type: 'success' })
     adjustPoint(reservation.total_price)
     await refreshProfile()
     await fetchReservations()
   } catch (err: unknown) {
-    await showAlert(t('payment.cancel_error') + ': ' + (err as Error).message, { title: t('payment.cancel_error'), type: 'error' })
+    await showAlert(t('payment.cancel_error') + ': ' + api.getErrorMessage(err), { title: t('payment.cancel_error'), type: 'error' })
   } finally {
     cancellingId.value = null
   }

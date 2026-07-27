@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import type { Database } from '~/types/database.types'
 
 const props = defineProps<{
   show: boolean
@@ -11,7 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const { profile: userData, userId, refreshProfile, adjustPoint } = useUserProfile()
 const { showAlert } = useModal()
 
@@ -138,12 +137,7 @@ const handleDonate = async () => {
 
   isDonating.value = true
   try {
-    const { error } = await supabase.rpc('donate_points', {
-      p_user_id: userId.value,
-      p_amount: amount.value
-    })
-
-    if (error) throw error
+    await api.points.donate(amount.value)
 
     // 로컬 포인트 실시간 차감 반영
     adjustPoint(-amount.value)

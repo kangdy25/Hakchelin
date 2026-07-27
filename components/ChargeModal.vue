@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { Database } from '~/types/database.types'
 
 const props = defineProps<{
   show: boolean
@@ -11,7 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const config = useRuntimeConfig()
 const { profile: userData, userId } = useUserProfile()
 const { showAlert } = useModal()
@@ -115,14 +114,7 @@ const handlePayment = async () => {
 
   isCharging.value = true
   try {
-    const { data, error } = await supabase.rpc('create_point_order', {
-      p_user_id: userId.value,
-      p_amount: amount.value
-    })
-
-    if (error) throw error
-
-    const order = Array.isArray(data) ? data[0] : data
+    const order = await api.points.createOrder(amount.value)
     if (!order?.order_id) {
       throw new Error('충전 주문을 생성하지 못했습니다.')
     }

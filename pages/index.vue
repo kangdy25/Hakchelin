@@ -13,7 +13,7 @@ interface ReservePayload {
 }
 
 const { t, tm, rt, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
 const { profile, userId, refreshProfile, adjustPoint } = useUserProfile()
 const { showAlert } = useModal()
 
@@ -40,14 +40,8 @@ const mapMenuType = (koType: string): 'kr' | 'premium' | 'takeout' => {
 
 // Supabase 메뉴 불러오기
 const fetchMenus = async () => {
-  const { data, error } = await supabase
-    .from('menus')
-    .select('*')
-    .eq('is_active', true)
-    .gte('meal_date', today)
-    .order('meal_date')
-    .order('meal_time')
-  if (data) {
+  try {
+    const data = await api.menus.get({ activeOnly: true, fromDate: today })
     dbMenus.value = data.map((menu) => ({
         id: menu.id,
         day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
@@ -66,7 +60,7 @@ const fetchMenus = async () => {
     if (!selectedDate.value || !availableDates.value.includes(selectedDate.value)) {
       selectedDate.value = availableDates.value[0] || ''
     }
-  } else if (error) {
+  } catch (error) {
     console.error('메뉴 불러오기 실패:', error)
   }
 }
@@ -96,27 +90,18 @@ const onReserve = async (payload: ReservePayload) => {
 
   loading.value = true
   try {
-    const { error } = await supabase.rpc('reserve_menu', {
-      p_user_id: userId.value,
-      p_menu_id: payload.menu_id,
-      p_options: payload.options,
-      p_total_price: payload.price
-    })
-
-    if (error) {
-      if (error.message.includes('Insufficient points')) {
-        await showAlert('포인트가 부족합니다. 상단 메뉴에서 포인트를 먼저 충전해주세요.', { title: '포인트 부족', type: 'warning' })
-      } else {
-        await showAlert('예약 중 오류가 발생했습니다: ' + error.message, { title: '예약 실패', type: 'error' })
-      }
-      return
-    }
+    await api.reservations.reserve({ menuId: payload.menu_id, options: payload.options, totalPrice: payload.price })
 
     await showAlert('예약이 성공적으로 완료되었습니다! 내 식권 메뉴에서 확인하세요.', { title: '예약 완료', type: 'success' })
     adjustPoint(-payload.price)
     await refreshProfile()
   } catch (err: unknown) {
-    await showAlert('오류: ' + (err as Error).message, { title: '오류 발생', type: 'error' })
+    const message = api.getErrorMessage(err)
+    if (message.includes('Insufficient points')) {
+      await showAlert('포인트가 부족합니다. 상단 메뉴에서 포인트를 먼저 충전해주세요.', { title: '포인트 부족', type: 'warning' })
+    } else {
+      await showAlert('오류: ' + message, { title: '오류 발생', type: 'error' })
+    }
   } finally {
     loading.value = false
   }
