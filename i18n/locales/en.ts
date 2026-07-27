@@ -131,6 +131,7 @@ export default {
       "filter_reserved": "Reserved",
       "filter_used": "Used",
       "filter_cancelled": "Cancelled",
+      "filter_no_show": "No-show",
       "table": {
         "student": "Student (ID)",
         "menu": "Reserved Menu (Date)",

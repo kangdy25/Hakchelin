@@ -131,6 +131,7 @@ export default {
       "filter_reserved": "예약완료",
       "filter_used": "사용완료",
       "filter_cancelled": "취소완료",
+      "filter_no_show": "노쇼",
       "table": {
         "student": "학생 (학번)",
         "menu": "예약 식단 (날짜)",
