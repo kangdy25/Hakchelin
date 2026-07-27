@@ -1,135 +1,138 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch } from "vue";
 
 const props = defineProps<{
-  show: boolean
-}>()
+  show: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'close'): void
-}>()
+  (e: "close"): void;
+}>();
 
-const { t, locale } = useI18n()
-const api = useApi()
-const config = useRuntimeConfig()
-const { profile: userData, userId } = useUserProfile()
-const { showAlert } = useModal()
+const { t, locale } = useI18n();
+const api = useApi();
+const config = useRuntimeConfig();
+const { profile: userData, userId } = useUserProfile();
+const { showAlert } = useModal();
 
-const amount = ref<number>(10000)
-const customAmountStr = ref<string>('')
-const isCharging = ref(false)
+const amount = ref<number>(10000);
+const customAmountStr = ref<string>("");
+const isCharging = ref(false);
 
-const presets = [5000, 10000, 20000, 30000, 50000]
+const presets = [5000, 10000, 20000, 30000, 50000];
 
 // 직접 입력 폼 변경 시 감지 (숫자 이외 문자 실시간 차단, 100만원 한도 제한 및 콤마 포맷팅)
 watch(customAmountStr, (newVal) => {
-  const clean = newVal.replace(/[^0-9]/g, '')
-  if (clean === '') {
-    amount.value = 0
-    if (newVal !== '') {
-      customAmountStr.value = ''
+  const clean = newVal.replace(/[^0-9]/g, "");
+  if (clean === "") {
+    amount.value = 0;
+    if (newVal !== "") {
+      customAmountStr.value = "";
     }
-    return
+    return;
   }
-  let parsed = parseInt(clean, 10)
+  let parsed = parseInt(clean, 10);
   if (parsed > 1000000) {
-    parsed = 1000000
+    parsed = 1000000;
   }
-  amount.value = parsed
-  const formatted = parsed.toLocaleString()
+  amount.value = parsed;
+  const formatted = parsed.toLocaleString();
   if (newVal !== formatted) {
-    customAmountStr.value = formatted
+    customAmountStr.value = formatted;
   }
-})
+});
 
 // 프리셋 선택 시 작동
 const selectPreset = (val: number) => {
-  amount.value = val
-  customAmountStr.value = val.toLocaleString()
-}
+  amount.value = val;
+  customAmountStr.value = val.toLocaleString();
+};
 
 // 초기화
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    amount.value = 10000
-    customAmountStr.value = '10,000'
+watch(
+  () => props.show,
+  (newVal) => {
+    if (newVal) {
+      amount.value = 10000;
+      customAmountStr.value = "10,000";
+    }
   }
-})
+);
 
 const loadTossPayments = () => {
   return new Promise<any>((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('브라우저에서만 결제를 시작할 수 있습니다.'))
-      return
+    if (typeof window === "undefined") {
+      reject(new Error("브라우저에서만 결제를 시작할 수 있습니다."));
+      return;
     }
 
-    const existingTossPayments = (window as any).TossPayments
+    const existingTossPayments = (window as any).TossPayments;
     if (existingTossPayments) {
-      resolve(existingTossPayments)
-      return
+      resolve(existingTossPayments);
+      return;
     }
 
-    const script = document.createElement('script')
-    script.src = 'https://js.tosspayments.com/v2/standard'
-    script.async = true
-    script.onload = () => resolve((window as any).TossPayments)
-    script.onerror = () => reject(new Error('토스페이먼츠 SDK를 불러오지 못했습니다.'))
-    document.head.appendChild(script)
-  })
-}
+    const script = document.createElement("script");
+    script.src = "https://js.tosspayments.com/v2/standard";
+    script.async = true;
+    script.onload = () => resolve((window as any).TossPayments);
+    script.onerror = () => reject(new Error("토스페이먼츠 SDK를 불러오지 못했습니다."));
+    document.head.appendChild(script);
+  });
+};
 
 const handlePayment = async () => {
   if (!userId.value) {
-    showAlert('사용자 정보를 불러올 수 없습니다. 다시 로그인해 주세요.', {
-      title: '오류',
-      type: 'error'
-    })
-    return
+    showAlert("사용자 정보를 불러올 수 없습니다. 다시 로그인해 주세요.", {
+      title: "오류",
+      type: "error"
+    });
+    return;
   }
 
   if (amount.value < 1000) {
-    showAlert('최소 충전 금액은 1,000원입니다.', {
-      title: '금액 오류',
-      type: 'warning'
-    })
-    return
+    showAlert("최소 충전 금액은 1,000원입니다.", {
+      title: "금액 오류",
+      type: "warning"
+    });
+    return;
   }
 
   if (amount.value > 1000000) {
-    showAlert('최대 충전 금액은 1,000,000원입니다.', {
-      title: '금액 오류',
-      type: 'warning'
-    })
-    return
+    showAlert("최대 충전 금액은 1,000,000원입니다.", {
+      title: "금액 오류",
+      type: "warning"
+    });
+    return;
   }
 
-  const clientKey = config.public.tossPaymentsClientKey
+  const clientKey = config.public.tossPaymentsClientKey;
   if (!clientKey) {
-    showAlert('토스페이먼츠 클라이언트 키가 설정되지 않았습니다.', {
-      title: '설정 오류',
-      type: 'error'
-    })
-    return
+    showAlert("토스페이먼츠 클라이언트 키가 설정되지 않았습니다.", {
+      title: "설정 오류",
+      type: "error"
+    });
+    return;
   }
 
-  isCharging.value = true
+  isCharging.value = true;
   try {
-    const order = await api.points.createOrder(amount.value)
+    const order = await api.points.createOrder(amount.value);
     if (!order?.order_id) {
-      throw new Error('충전 주문을 생성하지 못했습니다.')
+      throw new Error("충전 주문을 생성하지 못했습니다.");
     }
 
-    const TossPayments = await loadTossPayments()
-    const tossPayments = TossPayments(clientKey)
-    const payment = tossPayments.payment({ customerKey: userId.value })
+    const TossPayments = await loadTossPayments();
+    const tossPayments = TossPayments(clientKey);
+    const payment = tossPayments.payment({ customerKey: userId.value });
 
     await payment.requestPayment({
-      method: 'CARD',
+      method: "CARD",
       card: {
-        flowMode: 'DEFAULT'
+        flowMode: "DEFAULT"
       },
       amount: {
-        currency: 'KRW',
+        currency: "KRW",
         value: order.amount
       },
       orderId: order.order_id,
@@ -137,34 +140,35 @@ const handlePayment = async () => {
       customerName: userData.value.name,
       successUrl: `${window.location.origin}/payment/success`,
       failUrl: `${window.location.origin}/payment/fail`
-    })
+    });
   } catch (err: unknown) {
-    showAlert('결제 시작 중 오류가 발생했습니다: ' + (err as Error).message, {
-      title: '결제 실패',
-      type: 'error'
-    })
+    showAlert("결제 시작 중 오류가 발생했습니다: " + (err as Error).message, {
+      title: "결제 실패",
+      type: "error"
+    });
   } finally {
-    isCharging.value = false
+    isCharging.value = false;
   }
-}
+};
 </script>
 
 <template>
   <Transition name="modal-fade">
-    <div 
-      v-if="show" 
+    <div
+      v-if="show"
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[4px]"
       @click.self="emit('close')"
     >
-      <div class="bg-white rounded-[24px] p-6 max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 flex flex-col transform transition-all duration-300 scale-100">
-        
+      <div
+        class="bg-white rounded-[24px] p-6 max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 flex flex-col transform transition-all duration-300 scale-100"
+      >
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
           <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
             <span>🪙</span>
-            <span>{{ t('payment.charge') }}</span>
+            <span>{{ t("payment.charge") }}</span>
           </h3>
-          <button 
+          <button
             @click="emit('close')"
             class="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer"
           >
@@ -176,17 +180,23 @@ const handlePayment = async () => {
         <div class="space-y-5">
           <!-- Guide Text -->
           <p class="text-sm text-gray-500 font-medium leading-relaxed">
-            {{ locale === 'ko' ? '충전할 포인트 금액을 선택하거나 직접 입력해주세요. (최대 100만원, 1원 = 1포인트)' : 'Please select or enter the amount of points to charge. (Max 1,000,000 KRW, 1 KRW = 1 Point)' }}
+            {{
+              locale === "ko"
+                ? "충전할 포인트 금액을 선택하거나 직접 입력해주세요. (최대 100만원, 1원 = 1포인트)"
+                : "Please select or enter the amount of points to charge. (Max 1,000,000 KRW, 1 KRW = 1 Point)"
+            }}
           </p>
 
           <!-- Presets -->
           <div class="grid grid-cols-3 gap-2">
-            <button 
-              v-for="preset in presets" 
+            <button
+              v-for="preset in presets"
               :key="preset"
               @click="selectPreset(preset)"
               class="py-2.5 px-2 bg-gray-50 hover:bg-green-50 hover:text-[#2E7D32] hover:border-green-300 border border-gray-200/80 rounded-xl text-xs font-bold text-gray-700 transition-all duration-150 cursor-pointer"
-              :class="{ 'bg-green-50 text-[#2E7D32] border-[#2E7D32] ring-2 ring-green-100': amount === preset }"
+              :class="{
+                'bg-green-50 text-[#2E7D32] border-[#2E7D32] ring-2 ring-green-100': amount === preset
+              }"
             >
               +{{ preset.toLocaleString() }}P
             </button>
@@ -194,21 +204,19 @@ const handlePayment = async () => {
 
           <!-- Input field -->
           <div class="relative">
-            <input 
-              type="text" 
+            <input
+              type="text"
               v-model="customAmountStr"
               class="w-full pl-4 pr-12 py-3.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#2E7D32] focus:ring-4 focus:ring-green-100 outline-none rounded-xl text-base font-bold text-gray-800 transition-all duration-200"
               :placeholder="locale === 'ko' ? '직접 입력 (1,000P ~ 1,000,000P)' : 'Enter amount (1,000P ~ 1,000,000P)'"
             />
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-400 text-sm">
-              KRW
-            </span>
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 font-black text-gray-400 text-sm"> KRW </span>
           </div>
 
           <!-- Summary info -->
           <div class="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex justify-between items-center">
             <span class="text-xs text-gray-500 font-bold">
-              {{ locale === 'ko' ? '충전 후 예상 포인트' : 'Est. Points After Charge' }}
+              {{ locale === "ko" ? "충전 후 예상 포인트" : "Est. Points After Charge" }}
             </span>
             <div class="text-right">
               <span class="text-xs text-gray-400 line-through mr-1.5">
@@ -223,20 +231,23 @@ const handlePayment = async () => {
 
         <!-- Actions -->
         <div class="flex gap-3 w-full mt-6">
-          <button 
+          <button
             @click="emit('close')"
             :disabled="isCharging"
             class="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] text-gray-600 font-bold rounded-xl transition-all duration-150 cursor-pointer disabled:opacity-50"
           >
-            {{ t('admin.menus.cancel') || '취소' }}
+            {{ t("admin.menus.cancel") || "취소" }}
           </button>
-          <button 
+          <button
             @click="handlePayment"
             :disabled="isCharging"
             class="flex-1 py-3.5 bg-[#2E7D32] hover:bg-primary-dark active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-green-100 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <div v-if="isCharging" class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-            <span>{{ isCharging ? '결제 진행중...' : t('charge') || '충전하기' }}</span>
+            <div
+              v-if="isCharging"
+              class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"
+            ></div>
+            <span>{{ isCharging ? "결제 진행중..." : t("charge") || "충전하기" }}</span>
           </button>
         </div>
       </div>

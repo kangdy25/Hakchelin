@@ -1,96 +1,96 @@
 type UserProfile = {
-  name: string
-  student_id: string
-  current_point: number
-  role: 'student' | 'admin'
-}
+  name: string;
+  student_id: string;
+  current_point: number;
+  role: "student" | "admin";
+};
 
 const emptyProfile = (): UserProfile => ({
-  name: '학생',
-  student_id: '',
+  name: "학생",
+  student_id: "",
   current_point: 0,
-  role: 'student'
-})
+  role: "student"
+});
 
 export const useUserProfile = () => {
-  const api = useApi()
-  const auth = useAuth()
+  const api = useApi();
+  const auth = useAuth();
 
-  const profile = useState<UserProfile>('user-profile', emptyProfile)
-  const loading = useState('user-profile-loading', () => false)
-  const loadedUserId = useState<string | null>('user-profile-loaded-user-id', () => null)
-  const userId = auth.userId
+  const profile = useState<UserProfile>("user-profile", emptyProfile);
+  const loading = useState("user-profile-loading", () => false);
+  const loadedUserId = useState<string | null>("user-profile-loaded-user-id", () => null);
+  const userId = auth.userId;
 
-  const userMetadata = computed(() => auth.user.value?.metadata || {})
+  const userMetadata = computed(() => auth.user.value?.metadata || {});
 
   const fallbackProfile = (): UserProfile => ({
-    name: userMetadata.value.name || '학생',
-    student_id: userMetadata.value.student_id || '',
+    name: userMetadata.value.name || "학생",
+    student_id: userMetadata.value.student_id || "",
     current_point: profile.value.current_point || 0,
-    role: profile.value.role || 'student'
-  })
+    role: profile.value.role || "student"
+  });
 
-  const isAdmin = computed(() => profile.value.role === 'admin')
+  const isAdmin = computed(() => profile.value.role === "admin");
 
   const resetProfile = () => {
-    profile.value = emptyProfile()
-    loadedUserId.value = null
-  }
+    profile.value = emptyProfile();
+    loadedUserId.value = null;
+  };
 
   const refreshProfile = async () => {
     if (!userId.value) {
-      resetProfile()
-      return null
+      resetProfile();
+      return null;
     }
 
-    const currentUserId = userId.value
-    loading.value = true
+    const currentUserId = userId.value;
+    loading.value = true;
 
     try {
-      const data = await api.users.getMine()
+      const data = await api.users.getMine();
       if (!data) {
-        profile.value = fallbackProfile()
+        profile.value = fallbackProfile();
       } else {
         profile.value = {
           name: data.name || fallbackProfile().name,
           student_id: data.student_id || fallbackProfile().student_id,
           current_point: Number(data.current_point || 0),
-          role: (data.role || 'student') as 'student' | 'admin'
-        }
+          role: (data.role || "student") as "student" | "admin"
+        };
       }
-      loadedUserId.value = currentUserId
-      return profile.value
+      loadedUserId.value = currentUserId;
+      return profile.value;
     } catch {
-      profile.value = fallbackProfile()
+      profile.value = fallbackProfile();
 
-      loadedUserId.value = currentUserId
-      return profile.value
+      loadedUserId.value = currentUserId;
+      return profile.value;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
+  };
 
   const adjustPoint = (amount: number) => {
     profile.value = {
       ...profile.value,
       current_point: profile.value.current_point + amount
-    }
-  }
+    };
+  };
 
   watch(
     () => userId.value,
     (currentUserId) => {
       if (!currentUserId) {
-        resetProfile()
-        return
+        resetProfile();
+        return;
       }
 
       if (loadedUserId.value !== currentUserId) {
-        refreshProfile()
+        refreshProfile();
       }
     },
     { immediate: true }
-  )
+  );
 
   return {
     profile,
@@ -99,5 +99,5 @@ export const useUserProfile = () => {
     isAdmin,
     refreshProfile,
     adjustPoint
-  }
-}
+  };
+};

@@ -1,84 +1,84 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import type { Menu, Reservation, User, Transaction } from '~/types/api'
+import { ref, onMounted, computed } from "vue";
+import type { Menu, Reservation, User, Transaction } from "~/types/api";
 
 // Admin middleware protection
 definePageMeta({
-  middleware: 'admin'
-})
+  middleware: "admin"
+});
 
-const { t, locale } = useI18n({ useScope: 'global' })
-const api = useApi()
-const { refreshProfile, userId } = useUserProfile()
+const { t, locale } = useI18n({ useScope: "global" });
+const api = useApi();
+const { refreshProfile, userId } = useUserProfile();
 
 // Tabs
-const tabs = ['menus', 'tickets', 'users', 'stats', 'ai'] as const
-type Tab = typeof tabs[number]
-const activeTab = ref<Tab>('menus')
+const tabs = ["menus", "tickets", "users", "stats", "ai"] as const;
+type Tab = (typeof tabs)[number];
+const activeTab = ref<Tab>("menus");
 
 // Loading states
-const loading = ref(false)
-const processing = ref(false)
+const loading = ref(false);
+const processing = ref(false);
 
 // 1. Menus Data & Modals
-const dbMenus = ref<Menu[]>([])
-const today = new Date().toISOString().slice(0, 10)
-const selectedDate = ref(today)
-const dayCodes = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
-const dayOfWeek = (date: string) => dayCodes[new Date(`${date}T00:00:00`).getDay()] as Menu['day_of_week']
+const dbMenus = ref<Menu[]>([]);
+const today = new Date().toISOString().slice(0, 10);
+const selectedDate = ref(today);
+const dayCodes = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const dayOfWeek = (date: string) => dayCodes[new Date(`${date}T00:00:00`).getDay()] as Menu["day_of_week"];
 const toDateTimeLocal = (value: string) => {
-  const date = new Date(value)
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
-}
-const defaultDeadline = (date: string) => `${date}T11:00`
-const menuModalOpen = ref(false)
-const isEditMode = ref(false)
-const menuForm = ref<Omit<Menu, 'created_at'>>({
-  id: '',
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+const defaultDeadline = (date: string) => `${date}T11:00`;
+const menuModalOpen = ref(false);
+const isEditMode = ref(false);
+const menuForm = ref<Omit<Menu, "created_at">>({
+  id: "",
   day_of_week: dayOfWeek(today),
   meal_date: today,
-  meal_time: '12:00:00',
-  type: 'kr',
-  title_ko: '',
-  title_en: '',
+  meal_time: "12:00:00",
+  type: "kr",
+  title_ko: "",
+  title_en: "",
   price: 4500,
   capacity: 100,
   reservation_deadline: defaultDeadline(today),
   deposit_amount: 1000,
   is_active: true
-})
+});
 
 // 2. Reservations (Tickets) Data
-const reservations = ref<Reservation[]>([])
-const ticketSearch = ref('')
-const ticketStatusFilter = ref<string>('all')
+const reservations = ref<Reservation[]>([]);
+const ticketSearch = ref("");
+const ticketStatusFilter = ref<string>("all");
 
 // 3. Users Data & Modals
-const users = ref<User[]>([])
-const userSearch = ref('')
-const pointModalOpen = ref(false)
-const selectedUser = ref<User | null>(null)
-const pointAdjustAmount = ref<number>(10000)
-const pointAdjustAmountStr = ref<string>('10,000')
-const pointAdjustDesc = ref<string>('관리자 조정')
+const users = ref<User[]>([]);
+const userSearch = ref("");
+const pointModalOpen = ref(false);
+const selectedUser = ref<User | null>(null);
+const pointAdjustAmount = ref<number>(10000);
+const pointAdjustAmountStr = ref<string>("10,000");
+const pointAdjustDesc = ref<string>("관리자 조정");
 
 // 4. Stats & Transactions Data
-const transactions = ref<Transaction[]>([])
+const transactions = ref<Transaction[]>([]);
 
 // --- API Calls ---
 
 // Load Menus
 const loadMenus = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const data = await api.menus.get()
-    dbMenus.value = data.map(menu => ({
+    const data = await api.menus.get();
+    dbMenus.value = data.map((menu) => ({
       id: menu.id,
-      day_of_week: (menu.day_of_week || 'mon') as 'mon' | 'tue' | 'wed' | 'thu' | 'fri',
+      day_of_week: (menu.day_of_week || "mon") as "mon" | "tue" | "wed" | "thu" | "fri",
       meal_date: menu.meal_date,
       meal_time: menu.meal_time,
-      type: (menu.type || 'kr') as 'kr' | 'premium' | 'takeout',
+      type: (menu.type || "kr") as "kr" | "premium" | "takeout",
       title_ko: menu.title_ko,
       title_en: menu.title_en,
       price: menu.price || 4500,
@@ -87,179 +87,192 @@ const loadMenus = async () => {
       deposit_amount: menu.deposit_amount,
       is_active: menu.is_active,
       created_at: menu.created_at
-    }))
+    }));
   } catch (error) {
-    console.error('메뉴를 불러오지 못했습니다.', error)
+    console.error("메뉴를 불러오지 못했습니다.", error);
   }
-  loading.value = false
-}
+  loading.value = false;
+};
 
 // Load Reservations
 const loadReservations = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const data = await api.reservations.getAll()
-    reservations.value = data.map(r => ({
+    const data = await api.reservations.getAll();
+    reservations.value = data.map((r) => ({
       ...r,
       options: (r.options || {}) as { rice?: number; main?: number; [key: string]: any }
-    }))
+    }));
   } catch (error) {
-    console.error('식권을 불러오지 못했습니다.', error)
+    console.error("식권을 불러오지 못했습니다.", error);
   }
-  loading.value = false
-}
+  loading.value = false;
+};
 
 // Load Users
 const loadUsers = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    users.value = await api.users.getAll()
+    users.value = await api.users.getAll();
   } catch (error) {
-    console.error('사용자를 불러오지 못했습니다.', error)
+    console.error("사용자를 불러오지 못했습니다.", error);
   }
-  loading.value = false
-}
+  loading.value = false;
+};
 
 // Load Stats & Transactions
 const loadTransactions = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    transactions.value = await api.transactions.getAll()
+    transactions.value = await api.transactions.getAll();
   } catch (error) {
-    console.error('거래 내역을 불러오지 못했습니다.', error)
+    console.error("거래 내역을 불러오지 못했습니다.", error);
   }
-  loading.value = false
-}
+  loading.value = false;
+};
 
 // Global data loading handler based on active tab
 const loadTabDependencies = async () => {
-  if (activeTab.value === 'menus') {
-    await loadMenus()
-  } else if (activeTab.value === 'tickets') {
-    await loadReservations()
-  } else if (activeTab.value === 'users') {
-    await loadUsers()
-  } else if (activeTab.value === 'stats') {
-    await loadTransactions()
-    await loadUsers() // stats summary depends on users count
+  if (activeTab.value === "menus") {
+    await loadMenus();
+  } else if (activeTab.value === "tickets") {
+    await loadReservations();
+  } else if (activeTab.value === "users") {
+    await loadUsers();
+  } else if (activeTab.value === "stats") {
+    await loadTransactions();
+    await loadUsers(); // stats summary depends on users count
   }
-}
+};
 
-watch(activeTab, () => {
-  loadTabDependencies()
-}, { immediate: true })
+watch(
+  activeTab,
+  () => {
+    loadTabDependencies();
+  },
+  { immediate: true }
+);
 
 // 관리자 포인트 조정 감시 및 콤마 포맷팅, 최대 입력 제한
 watch(pointAdjustAmountStr, (newVal) => {
-  if (newVal === '') {
-    pointAdjustAmount.value = 0
-    return
+  if (newVal === "") {
+    pointAdjustAmount.value = 0;
+    return;
   }
 
-  const isNegative = newVal.startsWith('-')
-  const clean = newVal.replace(/[^0-9]/g, '')
-  
-  if (clean === '') {
-    pointAdjustAmount.value = 0
-    if (newVal === '-') {
-      pointAdjustAmountStr.value = '-'
-    } else if (newVal !== '') {
-      pointAdjustAmountStr.value = ''
+  const isNegative = newVal.startsWith("-");
+  const clean = newVal.replace(/[^0-9]/g, "");
+
+  if (clean === "") {
+    pointAdjustAmount.value = 0;
+    if (newVal === "-") {
+      pointAdjustAmountStr.value = "-";
+    } else if (newVal !== "") {
+      pointAdjustAmountStr.value = "";
     }
-    return
+    return;
   }
 
-  let parsed = parseInt(clean, 10)
-  
+  let parsed = parseInt(clean, 10);
+
   // 차감(음수)인 경우 최대 차감 포인트 한도는 대상 사용자의 현재 포인트로 제한
   if (isNegative) {
-    const userPoint = selectedUser.value?.current_point || 0
+    const userPoint = selectedUser.value?.current_point || 0;
     if (parsed > userPoint) {
-      parsed = userPoint
+      parsed = userPoint;
     }
   } else {
     // 충전(양수)인 경우 최대 한도 제한 (절대값 99,999,999)
-    const maxLimit = 99999999
+    const maxLimit = 99999999;
     if (parsed > maxLimit) {
-      parsed = maxLimit
+      parsed = maxLimit;
     }
   }
 
-  const finalAmount = isNegative ? -parsed : parsed
-  pointAdjustAmount.value = finalAmount
+  const finalAmount = isNegative ? -parsed : parsed;
+  pointAdjustAmount.value = finalAmount;
 
-  const formatted = (isNegative ? '-' : '') + parsed.toLocaleString()
+  const formatted = (isNegative ? "-" : "") + parsed.toLocaleString();
   if (newVal !== formatted) {
-    pointAdjustAmountStr.value = formatted
+    pointAdjustAmountStr.value = formatted;
   }
-})
+});
 
 // 관리자 포인트 조정 키 입력 제한
 const handlePointKeydown = (event: KeyboardEvent) => {
   const allowedKeys = [
-    'Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 
-    'ArrowUp', 'ArrowDown', 'Delete', 'Home', 'End'
-  ]
+    "Backspace",
+    "Tab",
+    "Enter",
+    "Escape",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Delete",
+    "Home",
+    "End"
+  ];
   if (allowedKeys.includes(event.key)) {
-    return
+    return;
   }
   if (event.ctrlKey || event.metaKey) {
-    return
+    return;
   }
-  
+
   // 마이너스 부호 허용 (단, 맨 처음에만 허용)
-  if (event.key === '-') {
-    const inputEl = event.target as HTMLInputElement
-    if (pointAdjustAmountStr.value.includes('-') || inputEl.selectionStart !== 0) {
-      event.preventDefault()
+  if (event.key === "-") {
+    const inputEl = event.target as HTMLInputElement;
+    if (pointAdjustAmountStr.value.includes("-") || inputEl.selectionStart !== 0) {
+      event.preventDefault();
     }
-    return
+    return;
   }
 
   // 숫자가 아니면 차단
   if (!/^\d$/.test(event.key)) {
-    event.preventDefault()
+    event.preventDefault();
   }
-}
+};
 
 // 관리자 포인트 조정 붙여넣기 제한
 const handlePointPaste = (event: ClipboardEvent) => {
-  const pasteData = event.clipboardData?.getData('text') || ''
-  const cleanPaste = pasteData.replace(/,/g, '')
-  const hasMinus = cleanPaste.startsWith('-')
-  const digits = hasMinus ? cleanPaste.slice(1) : cleanPaste
-  
+  const pasteData = event.clipboardData?.getData("text") || "";
+  const cleanPaste = pasteData.replace(/,/g, "");
+  const hasMinus = cleanPaste.startsWith("-");
+  const digits = hasMinus ? cleanPaste.slice(1) : cleanPaste;
+
   if (!/^\d*$/.test(digits)) {
-    event.preventDefault()
+    event.preventDefault();
   }
-}
+};
 
 onMounted(() => {
-  loadTabDependencies()
-})
+  loadTabDependencies();
+});
 
 // --- Menus Handlers ---
 const openAddMenuModal = () => {
-  isEditMode.value = false
+  isEditMode.value = false;
   menuForm.value = {
-    id: '',
+    id: "",
     day_of_week: dayOfWeek(selectedDate.value),
     meal_date: selectedDate.value,
-    meal_time: '12:00:00',
-    type: 'kr',
-    title_ko: '',
-    title_en: '',
+    meal_time: "12:00:00",
+    type: "kr",
+    title_ko: "",
+    title_en: "",
     price: 4500,
     capacity: 100,
     reservation_deadline: defaultDeadline(selectedDate.value),
     deposit_amount: 1000,
     is_active: true
-  }
-  menuModalOpen.value = true
-}
+  };
+  menuModalOpen.value = true;
+};
 
 const openEditMenuModal = (menu: Menu) => {
-  isEditMode.value = true
+  isEditMode.value = true;
   menuForm.value = {
     id: menu.id,
     day_of_week: menu.day_of_week,
@@ -273,220 +286,238 @@ const openEditMenuModal = (menu: Menu) => {
     reservation_deadline: toDateTimeLocal(menu.reservation_deadline),
     deposit_amount: Number(menu.deposit_amount),
     is_active: menu.is_active
-  }
-  menuModalOpen.value = true
-}
+  };
+  menuModalOpen.value = true;
+};
 
 const saveMenu = async () => {
   if (!menuForm.value.title_ko || !menuForm.value.title_en) {
-    alert(t('admin.menus.alerts.fill_both'))
-    return
+    alert(t("admin.menus.alerts.fill_both"));
+    return;
   }
 
-  processing.value = true
+  processing.value = true;
   try {
     if (isEditMode.value) {
       // Update
       await api.menus.update(menuForm.value.id, {
-          day_of_week: dayOfWeek(menuForm.value.meal_date),
-          meal_date: menuForm.value.meal_date,
-          meal_time: menuForm.value.meal_time,
-          type: menuForm.value.type,
-          title_ko: menuForm.value.title_ko,
-          title_en: menuForm.value.title_en,
-          price: menuForm.value.price,
-          capacity: menuForm.value.capacity,
-          reservation_deadline: menuForm.value.reservation_deadline,
-          deposit_amount: menuForm.value.deposit_amount,
-          is_active: menuForm.value.is_active
-        })
-      alert(t('admin.menus.alerts.updated'))
+        day_of_week: dayOfWeek(menuForm.value.meal_date),
+        meal_date: menuForm.value.meal_date,
+        meal_time: menuForm.value.meal_time,
+        type: menuForm.value.type,
+        title_ko: menuForm.value.title_ko,
+        title_en: menuForm.value.title_en,
+        price: menuForm.value.price,
+        capacity: menuForm.value.capacity,
+        reservation_deadline: menuForm.value.reservation_deadline,
+        deposit_amount: menuForm.value.deposit_amount,
+        is_active: menuForm.value.is_active
+      });
+      alert(t("admin.menus.alerts.updated"));
     } else {
       // Create
       await api.menus.create({
-          id: crypto.randomUUID(),
-          day_of_week: dayOfWeek(menuForm.value.meal_date),
-          meal_date: menuForm.value.meal_date,
-          meal_time: menuForm.value.meal_time,
-          type: menuForm.value.type,
-          title_ko: menuForm.value.title_ko,
-          title_en: menuForm.value.title_en,
-          price: menuForm.value.price,
-          capacity: menuForm.value.capacity,
-          reservation_deadline: menuForm.value.reservation_deadline,
-          deposit_amount: menuForm.value.deposit_amount,
-          is_active: menuForm.value.is_active
-        })
-      alert(t('admin.menus.alerts.saved'))
+        id: crypto.randomUUID(),
+        day_of_week: dayOfWeek(menuForm.value.meal_date),
+        meal_date: menuForm.value.meal_date,
+        meal_time: menuForm.value.meal_time,
+        type: menuForm.value.type,
+        title_ko: menuForm.value.title_ko,
+        title_en: menuForm.value.title_en,
+        price: menuForm.value.price,
+        capacity: menuForm.value.capacity,
+        reservation_deadline: menuForm.value.reservation_deadline,
+        deposit_amount: menuForm.value.deposit_amount,
+        is_active: menuForm.value.is_active
+      });
+      alert(t("admin.menus.alerts.saved"));
     }
-    menuModalOpen.value = false
-    await loadMenus()
+    menuModalOpen.value = false;
+    await loadMenus();
   } catch (err: unknown) {
-    alert(t('admin.menus.cancel') + ' ' + t('admin.tickets.table.action') + ' ' + t('status.cancelled') + ': ' + (err as Error).message)
+    alert(
+      t("admin.menus.cancel") +
+        " " +
+        t("admin.tickets.table.action") +
+        " " +
+        t("status.cancelled") +
+        ": " +
+        (err as Error).message
+    );
   } finally {
-    processing.value = false
+    processing.value = false;
   }
-}
+};
 
 const deleteMenu = async (id: string) => {
-  if (!confirm(t('admin.menus.alerts.confirm_delete'))) {
-    return
+  if (!confirm(t("admin.menus.alerts.confirm_delete"))) {
+    return;
   }
 
-  processing.value = true
+  processing.value = true;
   try {
-    await api.menus.deactivate(id)
-    alert(t('admin.menus.alerts.deleted'))
-    await loadMenus()
+    await api.menus.deactivate(id);
+    alert(t("admin.menus.alerts.deleted"));
+    await loadMenus();
   } catch (err: unknown) {
-    alert(t('admin.menus.alerts.deleted') + ' ' + t('status.cancelled') + ': ' + (err as Error).message)
+    alert(t("admin.menus.alerts.deleted") + " " + t("status.cancelled") + ": " + (err as Error).message);
   } finally {
-    processing.value = false
+    processing.value = false;
   }
-}
+};
 
 // --- Ticket Handlers ---
 const filteredReservations = computed(() => {
-  return reservations.value.filter(res => {
+  return reservations.value.filter((res) => {
     // 1. Status Filter
-    if (ticketStatusFilter.value !== 'all' && res.status !== ticketStatusFilter.value) {
-      return false
+    if (ticketStatusFilter.value !== "all" && res.status !== ticketStatusFilter.value) {
+      return false;
     }
     // 2. Search query filter
-    const query = ticketSearch.value.trim().toLowerCase()
-    if (!query) return true
+    const query = ticketSearch.value.trim().toLowerCase();
+    if (!query) return true;
 
-    const name = res.users?.name?.toLowerCase() || ''
-    const studentId = res.users?.student_id?.toLowerCase() || ''
-    const menuTitleKo = res.menus?.title_ko?.toLowerCase() || ''
-    const menuTitleEn = res.menus?.title_en?.toLowerCase() || ''
-    const id = res.id.toLowerCase()
+    const name = res.users?.name?.toLowerCase() || "";
+    const studentId = res.users?.student_id?.toLowerCase() || "";
+    const menuTitleKo = res.menus?.title_ko?.toLowerCase() || "";
+    const menuTitleEn = res.menus?.title_en?.toLowerCase() || "";
+    const id = res.id.toLowerCase();
 
-    return name.includes(query) || studentId.includes(query) || menuTitleKo.includes(query) || menuTitleEn.includes(query) || id.includes(query)
-  })
-})
+    return (
+      name.includes(query) ||
+      studentId.includes(query) ||
+      menuTitleKo.includes(query) ||
+      menuTitleEn.includes(query) ||
+      id.includes(query)
+    );
+  });
+});
 
 const handleUseTicket = async (id: string) => {
-  if (!confirm(t('admin.tickets.actions.confirm_meal'))) return
-  processing.value = true
+  if (!confirm(t("admin.tickets.actions.confirm_meal"))) return;
+  processing.value = true;
   try {
-    await api.reservations.useTicket(id)
-    alert(t('admin.tickets.actions.success_meal'))
-    await loadReservations()
+    await api.reservations.useTicket(id);
+    alert(t("admin.tickets.actions.success_meal"));
+    await loadReservations();
   } catch (err: unknown) {
-    alert('Error: ' + (err as Error).message)
+    alert("Error: " + (err as Error).message);
   } finally {
-    processing.value = false
+    processing.value = false;
   }
-}
+};
 
 const handleCancelTicket = async (id: string) => {
-  if (!confirm(t('admin.tickets.actions.confirm_cancel'))) return
-  processing.value = true
+  if (!confirm(t("admin.tickets.actions.confirm_cancel"))) return;
+  processing.value = true;
   try {
-    await api.reservations.cancelTicket(id)
-    alert(t('admin.tickets.actions.success_cancel'))
-    await loadReservations()
+    await api.reservations.cancelTicket(id);
+    alert(t("admin.tickets.actions.success_cancel"));
+    await loadReservations();
   } catch (err: unknown) {
-    alert('Error: ' + (err as Error).message)
+    alert("Error: " + (err as Error).message);
   } finally {
-    processing.value = false
+    processing.value = false;
   }
-}
+};
 
 // --- User Handlers ---
 const filteredUsers = computed(() => {
-  return users.value.filter(u => {
-    const query = userSearch.value.trim().toLowerCase()
-    if (!query) return true
+  return users.value.filter((u) => {
+    const query = userSearch.value.trim().toLowerCase();
+    if (!query) return true;
 
-    const name = u.name?.toLowerCase() || ''
-    const studentId = u.student_id?.toLowerCase() || ''
-    return name.includes(query) || studentId.includes(query)
-  })
-})
+    const name = u.name?.toLowerCase() || "";
+    const studentId = u.student_id?.toLowerCase() || "";
+    return name.includes(query) || studentId.includes(query);
+  });
+});
 
 const openPointModal = (userItem: User) => {
-  selectedUser.value = userItem
-  pointAdjustAmount.value = 10000
-  pointAdjustAmountStr.value = '10,000'
-  pointAdjustDesc.value = t('admin.users.actions.adjust_desc_default')
-  pointModalOpen.value = true
-}
+  selectedUser.value = userItem;
+  pointAdjustAmount.value = 10000;
+  pointAdjustAmountStr.value = "10,000";
+  pointAdjustDesc.value = t("admin.users.actions.adjust_desc_default");
+  pointModalOpen.value = true;
+};
 
 const adjustUserPoints = async () => {
-  if (!selectedUser.value) return
+  if (!selectedUser.value) return;
   if (pointAdjustAmount.value === 0) {
-    alert(t('admin.users.actions.adjust_alert_amount'))
-    return
+    alert(t("admin.users.actions.adjust_alert_amount"));
+    return;
   }
 
-  processing.value = true
+  processing.value = true;
   try {
     await api.users.adjustPoints({
       userId: selectedUser.value.id,
       amount: pointAdjustAmount.value,
       description: pointAdjustDesc.value
-    })
-    alert(t('admin.users.actions.adjust_success', { amount: `${pointAdjustAmount.value > 0 ? '+' : ''}${pointAdjustAmount.value.toLocaleString()}` }))
-    pointModalOpen.value = false
-    await loadUsers()
+    });
+    alert(
+      t("admin.users.actions.adjust_success", {
+        amount: `${pointAdjustAmount.value > 0 ? "+" : ""}${pointAdjustAmount.value.toLocaleString()}`
+      })
+    );
+    pointModalOpen.value = false;
+    await loadUsers();
   } catch (err: unknown) {
-    alert('Failed: ' + (err as Error).message)
+    alert("Failed: " + (err as Error).message);
   } finally {
-    processing.value = false
+    processing.value = false;
   }
-}
+};
 
 const toggleUserRole = async (userItem: User) => {
-  const newRole = userItem.role === 'admin' ? 'student' : 'admin'
-  
+  const newRole = userItem.role === "admin" ? "student" : "admin";
+
   // Prevent self-demotion
   if (userItem.id === userId.value) {
-    alert(t('admin.users.actions.self_demotion_error'))
-    return
-  }
-  
-  const targetRoleName = newRole === 'admin' ? t('admin.users.roles.admin') : t('admin.users.roles.student')
-  if (!confirm(t('admin.users.actions.confirm_role', { name: userItem.name, role: targetRoleName }))) {
-    return
+    alert(t("admin.users.actions.self_demotion_error"));
+    return;
   }
 
-  processing.value = true
-  try {
-    await api.users.updateRole({ userId: userItem.id, role: newRole })
-    alert(t('admin.users.actions.success_role'))
-    await loadUsers()
-    await refreshProfile()
-  } catch (err: unknown) {
-    alert('Error: ' + (err as Error).message)
-  } finally {
-    processing.value = false
+  const targetRoleName = newRole === "admin" ? t("admin.users.roles.admin") : t("admin.users.roles.student");
+  if (!confirm(t("admin.users.actions.confirm_role", { name: userItem.name, role: targetRoleName }))) {
+    return;
   }
-}
+
+  processing.value = true;
+  try {
+    await api.users.updateRole({ userId: userItem.id, role: newRole });
+    alert(t("admin.users.actions.success_role"));
+    await loadUsers();
+    await refreshProfile();
+  } catch (err: unknown) {
+    alert("Error: " + (err as Error).message);
+  } finally {
+    processing.value = false;
+  }
+};
 
 // --- Stats Computeds ---
 const statsSummary = computed(() => {
-  let totalUsersCount = users.value.length
-  let totalAdminsCount = users.value.filter(u => u.role === 'admin').length
+  let totalUsersCount = users.value.length;
+  let totalAdminsCount = users.value.filter((u) => u.role === "admin").length;
 
-  let totalCharges = 0
-  let totalSales = 0
-  let totalRefunds = 0
+  let totalCharges = 0;
+  let totalSales = 0;
+  let totalRefunds = 0;
 
-  transactions.value.forEach(tx => {
-    const amt = Number(tx.amount)
-    if (tx.type === 'charge') {
-      totalCharges += amt
-    } else if (tx.type === 'deduct') {
-      totalSales += Math.abs(amt)
-    } else if (tx.type === 'refund') {
-      totalRefunds += Math.abs(amt)
+  transactions.value.forEach((tx) => {
+    const amt = Number(tx.amount);
+    if (tx.type === "charge") {
+      totalCharges += amt;
+    } else if (tx.type === "deduct") {
+      totalSales += Math.abs(amt);
+    } else if (tx.type === "refund") {
+      totalRefunds += Math.abs(amt);
     }
-  })
+  });
 
   // calculate active tickets
-  let activeTicketsCount = reservations.value.filter(r => r.status === 'reserved').length
+  let activeTicketsCount = reservations.value.filter((r) => r.status === "reserved").length;
 
   return {
     totalUsersCount,
@@ -495,42 +526,49 @@ const statsSummary = computed(() => {
     totalSales,
     totalRefunds,
     activeTicketsCount
-  }
-})
+  };
+});
 
 // UI formatting helpers
-const mapMenuType = (koType: string): 'kr' | 'premium' | 'takeout' => {
-  if (['kr', 'premium', 'takeout'].includes(koType)) return koType as 'kr' | 'premium' | 'takeout'
-  if (koType === '한식') return 'kr'
-  if (koType === '일품') return 'premium'
-  if (koType === '포장') return 'takeout'
-  return 'kr'
-}
+const mapMenuType = (koType: string): "kr" | "premium" | "takeout" => {
+  if (["kr", "premium", "takeout"].includes(koType)) return koType as "kr" | "premium" | "takeout";
+  if (koType === "한식") return "kr";
+  if (koType === "일품") return "premium";
+  if (koType === "포장") return "takeout";
+  return "kr";
+};
 
 const getMenuBadgeClass = (koType: string) => {
-  const type = mapMenuType(koType)
-  if (type === 'premium') return 'bg-amber-100 text-amber-800 border-amber-200'
-  if (type === 'takeout') return 'bg-blue-100 text-blue-800 border-blue-200'
-  return 'bg-green-100 text-green-800 border-green-200'
-}
+  const type = mapMenuType(koType);
+  if (type === "premium") return "bg-amber-100 text-amber-800 border-amber-200";
+  if (type === "takeout") return "bg-blue-100 text-blue-800 border-blue-200";
+  return "bg-green-100 text-green-800 border-green-200";
+};
 
 const formatDate = (dateStr: string) => {
-  return new Intl.DateTimeFormat(locale.value === 'ko' ? 'ko-KR' : 'en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(dateStr))
-}
+  return new Intl.DateTimeFormat(locale.value === "ko" ? "ko-KR" : "en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(dateStr));
+};
+
+const formatMealDate = (date: string) =>
+  new Intl.DateTimeFormat(locale.value === "ko" ? "ko-KR" : "en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  }).format(new Date(`${date}T00:00:00`));
 
 const statusClass: Record<string, string> = {
-  reserved: 'bg-green-100 text-green-800 border-green-200',
-  used: 'bg-blue-100 text-blue-800 border-blue-200',
-  cancelled: 'bg-red-100 text-red-800 border-red-200',
-  no_show: 'bg-amber-100 text-amber-800 border-amber-200'
-}
+  reserved: "bg-green-100 text-green-800 border-green-200",
+  used: "bg-blue-100 text-blue-800 border-blue-200",
+  cancelled: "bg-red-100 text-red-800 border-red-200",
+  no_show: "bg-amber-100 text-amber-800 border-amber-200"
+};
 
-const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date === selectedDate.value))
+const selectedMenus = computed(() => dbMenus.value.filter((menu) => menu.meal_date === selectedDate.value));
 </script>
 
 <template>
@@ -539,13 +577,18 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
       <div>
         <h1 class="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-2">
-          🛠️ {{ t('nav_admin') }} <span class="text-base font-semibold text-gray-500 bg-gray-200/60 px-3 py-1 rounded-full">{{ t('admin.dashboard') }}</span>
+          🛠️ {{ t("nav_admin") }}
+          <span class="text-base font-semibold text-gray-500 bg-gray-200/60 px-3 py-1 rounded-full">{{
+            t("admin.dashboard")
+          }}</span>
         </h1>
-        <p class="text-sm text-gray-500 mt-1">{{ t('admin.sub_desc') }}</p>
+        <p class="text-sm text-gray-500 mt-1">{{ t("admin.sub_desc") }}</p>
       </div>
 
       <!-- Tab Buttons -->
-      <div class="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200/80 w-full md:w-auto overflow-x-auto no-scrollbar">
+      <div
+        class="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200/80 w-full md:w-auto overflow-x-auto no-scrollbar"
+      >
         <button
           v-for="tab in tabs"
           :key="tab"
@@ -559,26 +602,34 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
     </div>
 
     <!-- Active Content Area -->
-    <div v-if="loading && !processing" class="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-      <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#4ade80] border-t-transparent mx-auto mb-4"></div>
-      <p class="text-sm text-gray-500 font-semibold">{{ t('admin.loading') }}</p>
+    <div
+      v-if="loading && !processing"
+      class="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]"
+    >
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-4 border-[#4ade80] border-t-transparent mx-auto mb-4"
+      ></div>
+      <p class="text-sm text-gray-500 font-semibold">{{ t("admin.loading") }}</p>
     </div>
 
     <div v-else class="space-y-6">
-      
       <!-- 1. TAB: MENUS (식단 관리) -->
       <div v-if="activeTab === 'menus'">
         <div class="flex justify-between items-center mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
           <div>
             <label class="block text-[11px] font-bold text-gray-400 mb-1">식사 날짜</label>
-            <input v-model="selectedDate" type="date" class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold" />
+            <input
+              v-model="selectedDate"
+              type="date"
+              class="px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+            />
           </div>
-          
+
           <button
             @click="openAddMenuModal"
             class="px-4 py-2.5 bg-[#2E7D32] text-white font-bold rounded-xl text-sm shadow-md hover:bg-[#1b5e20] transition-colors flex items-center gap-1.5"
           >
-            <span>+</span> {{ t('admin.menus.add_menu') }}
+            <span>+</span> {{ t("admin.menus.add_menu") }}
           </button>
         </div>
 
@@ -597,13 +648,17 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
                 <span class="text-xs text-gray-400 font-semibold">ID: {{ menu.id.substring(0, 8) }}</span>
               </div>
               <h3 class="text-lg font-black text-gray-900 leading-snug">
-                {{ locale === 'ko' ? menu.title_ko : menu.title_en }}
+                {{ locale === "ko" ? menu.title_ko : menu.title_en }}
               </h3>
               <p class="text-sm text-gray-500 font-semibold mt-1">
-                {{ locale === 'ko' ? menu.title_en : menu.title_ko }}
+                {{ locale === "ko" ? menu.title_en : menu.title_ko }}
               </p>
-              <p class="text-xs text-gray-500 font-semibold mt-3">{{ menu.meal_date }} · {{ menu.meal_time.slice(0, 5) }} · 정원 {{ menu.capacity }}명</p>
-              <p class="text-[11px] text-gray-400 mt-1">예약 마감: {{ formatDate(menu.reservation_deadline) }}</p>
+              <p class="text-xs text-gray-500 font-semibold mt-3">
+                {{ t("admin.menus.schedule_summary", { date: formatMealDate(menu.meal_date), time: menu.meal_time.slice(0, 5), capacity: menu.capacity }) }}
+              </p>
+              <p class="text-[11px] text-gray-400 mt-1">
+                {{ t("admin.menus.reservation_deadline", { date: formatDate(menu.reservation_deadline) }) }}
+              </p>
             </div>
 
             <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-50">
@@ -613,13 +668,13 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
                   @click="openEditMenuModal(menu)"
                   class="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold rounded-lg text-xs transition-colors border border-gray-200"
                 >
-                  {{ t('admin.menus.edit') }}
+                  {{ t("admin.menus.edit") }}
                 </button>
                 <button
                   @click="deleteMenu(menu.id)"
                   class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-xs transition-colors border border-red-100"
                 >
-                  {{ t('admin.menus.delete') }}
+                  {{ t("admin.menus.delete") }}
                 </button>
               </div>
             </div>
@@ -630,7 +685,7 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
           <div class="text-4xl mb-4">🍽️</div>
           <p class="text-gray-500 font-bold text-sm">선택한 날짜에 등록된 메뉴가 없습니다.</p>
           <button @click="openAddMenuModal" class="mt-4 px-4 py-2 text-xs font-bold text-[#2E7D32] hover:underline">
-            {{ t('admin.menus.first_menu') }}
+            {{ t("admin.menus.first_menu") }}
           </button>
         </div>
       </div>
@@ -638,7 +693,9 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
       <!-- 2. TAB: TICKETS (식권 조회/사용) -->
       <div v-if="activeTab === 'tickets'" class="space-y-4">
         <!-- Filter bar -->
-        <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div
+          class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between"
+        >
           <div class="relative w-full md:w-72">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
             <input
@@ -649,13 +706,17 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
             />
           </div>
 
-          <div class="flex gap-1.5 w-full md:w-auto overflow-x-auto no-scrollbar bg-gray-50 p-1 rounded-xl border border-gray-200/50">
+          <div
+            class="flex gap-1.5 w-full md:w-auto overflow-x-auto no-scrollbar bg-gray-50 p-1 rounded-xl border border-gray-200/50"
+          >
             <button
               v-for="status in ['all', 'reserved', 'used', 'cancelled']"
               :key="status"
               @click="ticketStatusFilter = status"
               class="px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all"
-              :class="ticketStatusFilter === status ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'"
+              :class="
+                ticketStatusFilter === status ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+              "
             >
               {{ t(`admin.tickets.filter_${status}`) }}
             </button>
@@ -663,42 +724,62 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
         </div>
 
         <!-- Tickets List -->
-        <div v-if="filteredReservations.length" class="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
+        <div
+          v-if="filteredReservations.length"
+          class="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm"
+        >
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs font-bold tracking-wider">
-                  <th class="py-4 px-6">{{ t('admin.tickets.table.student') }}</th>
-                  <th class="py-4 px-6">{{ t('admin.tickets.table.menu') }}</th>
-                  <th class="py-4 px-6">{{ t('admin.tickets.table.price_opts') }}</th>
-                  <th class="py-4 px-6">{{ t('admin.tickets.table.status') }}</th>
-                  <th class="py-4 px-6 text-right">{{ t('admin.tickets.table.action') }}</th>
+                  <th class="py-4 px-6">{{ t("admin.tickets.table.student") }}</th>
+                  <th class="py-4 px-6">{{ t("admin.tickets.table.menu") }}</th>
+                  <th class="py-4 px-6">{{ t("admin.tickets.table.price_opts") }}</th>
+                  <th class="py-4 px-6">{{ t("admin.tickets.table.status") }}</th>
+                  <th class="py-4 px-6 text-right">{{ t("admin.tickets.table.action") }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 text-sm font-semibold text-gray-700">
                 <tr v-for="res in filteredReservations" :key="res.id" class="hover:bg-gray-50/50 transition-colors">
                   <!-- Student info -->
                   <td class="py-4 px-6">
-                    <div class="font-extrabold text-gray-950">{{ res.users?.name || t('admin.tickets.table.no_info') }}</div>
-                    <div class="text-xs text-gray-400 mt-0.5">{{ t('student_id') }} {{ res.users?.student_id || '-' }}</div>
+                    <div class="font-extrabold text-gray-950">
+                      {{ res.users?.name || t("admin.tickets.table.no_info") }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-0.5">
+                      {{ t("student_id") }} {{ res.users?.student_id || "-" }}
+                    </div>
                   </td>
                   <!-- Menu info -->
                   <td class="py-4 px-6">
-                    <div class="truncate max-w-[200px] font-bold text-gray-900">{{ locale === 'ko' ? (res.menus?.title_ko || t('admin.tickets.table.deleted_menu')) : (res.menus?.title_en || t('admin.tickets.table.deleted_menu')) }}</div>
-                    <div class="text-xs text-gray-400 mt-0.5">{{ res.meal_date || '-' }} {{ res.meal_time?.slice(0, 5) || '' }}</div>
+                    <div class="truncate max-w-[200px] font-bold text-gray-900">
+                      {{
+                        locale === "ko"
+                          ? res.menus?.title_ko || t("admin.tickets.table.deleted_menu")
+                          : res.menus?.title_en || t("admin.tickets.table.deleted_menu")
+                      }}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-0.5">
+                      {{ res.meal_date || "-" }} {{ res.meal_time?.slice(0, 5) || "" }}
+                    </div>
                   </td>
                   <!-- Price & Options -->
                   <td class="py-4 px-6">
                     <div class="text-[#2E7D32] font-black">{{ res.total_price.toLocaleString() }}P</div>
                     <div class="text-[10px] text-gray-400 mt-0.5">
-                      {{ t('admin.tickets.table.rice') }}: {{ t(`admin.tickets.table.rice_opt.${res.options?.rice || 0}`) }} |
-                      {{ t('admin.tickets.table.main') }}: {{ t(`admin.tickets.table.main_opt.${res.options?.main || 0}`) }}
+                      {{ t("admin.tickets.table.rice") }}:
+                      {{ t(`admin.tickets.table.rice_opt.${res.options?.rice || 0}`) }} |
+                      {{ t("admin.tickets.table.main") }}:
+                      {{ t(`admin.tickets.table.main_opt.${res.options?.main || 0}`) }}
                     </div>
                   </td>
                   <!-- Status -->
                   <td class="py-4 px-6">
-                    <span class="inline-flex text-[11px] font-extrabold px-2.5 py-1 rounded-full border" :class="statusClass[res.status || 'reserved']">
-                      {{ t(`admin.tickets.filter_${res.status || 'reserved'}`) }}
+                    <span
+                      class="inline-flex text-[11px] font-extrabold px-2.5 py-1 rounded-full border"
+                      :class="statusClass[res.status || 'reserved']"
+                    >
+                      {{ t(`admin.tickets.filter_${res.status || "reserved"}`) }}
                     </span>
                   </td>
                   <!-- Actions -->
@@ -708,13 +789,13 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
                         @click="handleUseTicket(res.id)"
                         class="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-[#2E7D32] border border-green-200 rounded-lg text-xs transition-colors"
                       >
-                        {{ t('admin.tickets.actions.complete_meal') }}
+                        {{ t("admin.tickets.actions.complete_meal") }}
                       </button>
                       <button
                         @click="handleCancelTicket(res.id)"
                         class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs transition-colors"
                       >
-                        {{ t('admin.tickets.actions.cancel_refund') }}
+                        {{ t("admin.tickets.actions.cancel_refund") }}
                       </button>
                     </div>
                     <span v-else class="text-xs text-gray-400 font-medium">-</span>
@@ -727,7 +808,7 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
 
         <div v-else class="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
           <div class="text-4xl mb-4">🎫</div>
-          <p class="text-gray-500 font-bold text-sm">{{ t('admin.tickets.empty') }}</p>
+          <p class="text-gray-500 font-bold text-sm">{{ t("admin.tickets.empty") }}</p>
         </div>
       </div>
 
@@ -752,11 +833,11 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs font-bold tracking-wider">
-                  <th class="py-4 px-6">{{ t('admin.users.table.name') }}</th>
-                  <th class="py-4 px-6">{{ t('admin.users.table.student_id') }}</th>
-                  <th class="py-4 px-6">{{ t('admin.users.table.role') }}</th>
-                  <th class="py-4 px-6">{{ t('admin.users.table.points') }}</th>
-                  <th class="py-4 px-6 text-right">{{ t('admin.users.table.actions') }}</th>
+                  <th class="py-4 px-6">{{ t("admin.users.table.name") }}</th>
+                  <th class="py-4 px-6">{{ t("admin.users.table.student_id") }}</th>
+                  <th class="py-4 px-6">{{ t("admin.users.table.role") }}</th>
+                  <th class="py-4 px-6">{{ t("admin.users.table.points") }}</th>
+                  <th class="py-4 px-6 text-right">{{ t("admin.users.table.actions") }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 text-sm font-semibold text-gray-700">
@@ -767,15 +848,17 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
                   <td class="py-4 px-6">
                     <span
                       class="inline-flex text-[10px] font-black px-2 py-0.5 rounded border"
-                      :class="u.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-gray-100 text-gray-800 border-gray-200'"
+                      :class="
+                        u.role === 'admin'
+                          ? 'bg-purple-100 text-purple-800 border-purple-200'
+                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                      "
                     >
                       {{ t(`admin.users.roles.${u.role}`) }}
                     </span>
                   </td>
                   <!-- Points -->
-                  <td class="py-4 px-6 text-[#2E7D32] font-black">
-                    {{ Number(u.current_point).toLocaleString() }} P
-                  </td>
+                  <td class="py-4 px-6 text-[#2E7D32] font-black">{{ Number(u.current_point).toLocaleString() }} P</td>
                   <!-- Admin Actions -->
                   <td class="py-4 px-6 text-right">
                     <div class="flex justify-end gap-2">
@@ -783,13 +866,17 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
                         @click="openPointModal(u)"
                         class="px-3 py-1.5 bg-[#E8F5E9] hover:bg-[#b2fab4] text-[#2E7D32] rounded-lg text-xs transition-colors border border-green-200"
                       >
-                        {{ t('admin.users.actions.adjust_points') }}
+                        {{ t("admin.users.actions.adjust_points") }}
                       </button>
                       <button
                         @click="toggleUserRole(u)"
                         class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-lg text-xs transition-colors border border-purple-200"
                       >
-                        {{ u.role === 'admin' ? t('admin.users.actions.demote_student') : t('admin.users.actions.promote_admin') }}
+                        {{
+                          u.role === "admin"
+                            ? t("admin.users.actions.demote_student")
+                            : t("admin.users.actions.promote_admin")
+                        }}
                       </button>
                     </div>
                   </td>
@@ -801,7 +888,7 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
 
         <div v-else class="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
           <div class="text-4xl mb-4">👤</div>
-          <p class="text-gray-500 font-bold text-sm">{{ t('admin.users.empty') }}</p>
+          <p class="text-gray-500 font-bold text-sm">{{ t("admin.users.empty") }}</p>
         </div>
       </div>
 
@@ -811,76 +898,118 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <!-- Stat Card 1 -->
           <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{ t('admin.stats.users_count') }}</span>
+            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{
+              t("admin.stats.users_count")
+            }}</span>
             <div class="flex items-baseline gap-1 mt-3">
               <span class="text-3xl font-black text-gray-900">{{ statsSummary.totalUsersCount }}</span>
-              <span class="text-sm text-gray-500 font-bold">{{ locale === 'ko' ? '명' : '' }}</span>
+              <span class="text-sm text-gray-500 font-bold">{{ locale === "ko" ? "명" : "" }}</span>
             </div>
-            <div class="text-[11px] text-purple-600 font-bold mt-2">{{ locale === 'ko' ? `운영 관리자: ${statsSummary.totalAdminsCount}명 포함` : `Includes ${statsSummary.totalAdminsCount} admins` }}</div>
+            <div class="text-[11px] text-purple-600 font-bold mt-2">
+              {{
+                locale === "ko"
+                  ? `운영 관리자: ${statsSummary.totalAdminsCount}명 포함`
+                  : `Includes ${statsSummary.totalAdminsCount} admins`
+              }}
+            </div>
           </div>
           <!-- Stat Card 2 -->
           <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{ t('admin.stats.active_tickets') }}</span>
+            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{
+              t("admin.stats.active_tickets")
+            }}</span>
             <div class="flex items-baseline gap-1 mt-3">
               <span class="text-3xl font-black text-amber-500">{{ statsSummary.activeTicketsCount }}</span>
-              <span class="text-sm text-gray-500 font-bold">{{ locale === 'ko' ? '개' : '' }}</span>
+              <span class="text-sm text-gray-500 font-bold">{{ locale === "ko" ? "개" : "" }}</span>
             </div>
-            <div class="text-[11px] text-gray-400 font-bold mt-2">{{ t('admin.stats.active_tickets_desc') }}</div>
+            <div class="text-[11px] text-gray-400 font-bold mt-2">{{ t("admin.stats.active_tickets_desc") }}</div>
           </div>
           <!-- Stat Card 3 -->
           <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{ t('admin.stats.total_sales') }}</span>
+            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{
+              t("admin.stats.total_sales")
+            }}</span>
             <div class="flex items-baseline gap-1 mt-3">
               <span class="text-2xl font-black text-[#2E7D32]">{{ statsSummary.totalSales.toLocaleString() }}</span>
               <span class="text-sm text-gray-500 font-bold">P</span>
             </div>
-            <div class="text-[11px] text-gray-400 font-bold mt-2">{{ t('admin.stats.total_sales_desc') }}</div>
+            <div class="text-[11px] text-gray-400 font-bold mt-2">{{ t("admin.stats.total_sales_desc") }}</div>
           </div>
           <!-- Stat Card 4 -->
           <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm flex flex-col justify-between">
-            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{ t('admin.stats.total_charges') }}</span>
+            <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">{{
+              t("admin.stats.total_charges")
+            }}</span>
             <div class="flex items-baseline gap-1 mt-3">
               <span class="text-2xl font-black text-blue-600">{{ statsSummary.totalCharges.toLocaleString() }}</span>
               <span class="text-sm text-gray-500 font-bold">P</span>
             </div>
-            <div class="text-[11px] text-red-500 font-bold mt-2">{{ t('admin.stats.total_charges_desc', { refunds: statsSummary.totalRefunds.toLocaleString() }) }}</div>
+            <div class="text-[11px] text-red-500 font-bold mt-2">
+              {{ t("admin.stats.total_charges_desc", { refunds: statsSummary.totalRefunds.toLocaleString() }) }}
+            </div>
           </div>
         </div>
 
         <!-- Recent System-wide Transactions -->
         <div>
-          <h2 class="text-lg font-black text-gray-900 mb-3">{{ t('admin.stats.log_title') }}</h2>
+          <h2 class="text-lg font-black text-gray-900 mb-3">{{ t("admin.stats.log_title") }}</h2>
           <div v-if="transactions.length" class="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs font-bold tracking-wider">
-                    <th class="py-4 px-6">{{ t('admin.stats.log_table.date') }}</th>
-                    <th class="py-4 px-6">{{ t('admin.stats.log_table.student') }}</th>
-                    <th class="py-4 px-6">{{ t('admin.stats.log_table.amount') }}</th>
-                    <th class="py-4 px-6">{{ t('admin.stats.log_table.type') }}</th>
-                    <th class="py-4 px-6">{{ t('admin.stats.log_table.desc') }}</th>
+                    <th class="py-4 px-6">{{ t("admin.stats.log_table.date") }}</th>
+                    <th class="py-4 px-6">{{ t("admin.stats.log_table.student") }}</th>
+                    <th class="py-4 px-6">{{ t("admin.stats.log_table.amount") }}</th>
+                    <th class="py-4 px-6">{{ t("admin.stats.log_table.type") }}</th>
+                    <th class="py-4 px-6">{{ t("admin.stats.log_table.desc") }}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-xs font-bold text-gray-700">
                   <tr v-for="tx in transactions" :key="tx.id" class="hover:bg-gray-50/50">
-                    <td class="py-3 px-6 text-gray-400">{{ formatDate(tx.created_at || '') }}</td>
+                    <td class="py-3 px-6 text-gray-400">{{ formatDate(tx.created_at || "") }}</td>
                     <td class="py-3 px-6 text-gray-800">
-                      {{ tx.users?.name || t('admin.stats.log_table.no_info') }} ({{ tx.users?.student_id || '-' }})
+                      {{ tx.users?.name || t("admin.stats.log_table.no_info") }} ({{ tx.users?.student_id || "-" }})
                     </td>
                     <td class="py-3 px-6" :class="tx.amount > 0 ? 'text-[#2E7D32]' : 'text-gray-950'">
-                      {{ tx.amount > 0 ? '+' : '' }}{{ tx.amount.toLocaleString() }}P
+                      {{ tx.amount > 0 ? "+" : "" }}{{ tx.amount.toLocaleString() }}P
                     </td>
                     <td class="py-3 px-6">
                       <span
                         class="inline-block text-[10px] px-1.5 py-0.5 rounded"
-                        :class="tx.description === '마음을 잇는 식탁 기부' ? 'bg-pink-50 text-pink-600 border border-pink-200' : (tx.type === 'charge' ? 'bg-blue-50 text-blue-700 border border-blue-200' : (tx.type === 'refund' ? 'bg-green-50 text-[#2E7D32] border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'))"
+                        :class="
+                          tx.description === '마음을 잇는 식탁 기부'
+                            ? 'bg-pink-50 text-pink-600 border border-pink-200'
+                            : tx.type === 'charge'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : tx.type === 'refund'
+                                ? 'bg-green-50 text-[#2E7D32] border border-green-200'
+                                : 'bg-gray-50 text-gray-700 border border-gray-200'
+                        "
                       >
-                        {{ tx.description === '마음을 잇는 식탁 기부' ? t('admin.stats.log_table.donate') : t(`admin.stats.log_table.${tx.type}`) }}
+                        {{
+                          tx.description === "마음을 잇는 식탁 기부"
+                            ? t("admin.stats.log_table.donate")
+                            : t(`admin.stats.log_table.${tx.type}`)
+                        }}
                       </span>
                     </td>
                     <td class="py-3 px-6 text-gray-500 font-semibold">
-                      {{ tx.description === '포인트 충전' ? t('payment.charge') : (tx.description === '메뉴 예약' ? t('payment.use') : (tx.description === '예약 취소 환불' ? t('payment.refund') : (tx.description === '예약 취소 환불 (관리자)' ? t('payment.refund_admin') : (tx.description === '관리자 포인트 조정' ? t('payment.admin_adjust') : (tx.description === '마음을 잇는 식탁 기부' ? t('heartTable.donateBtn') : (tx.description || '-')))))) }}
+                      {{
+                        tx.description === "포인트 충전"
+                          ? t("payment.charge")
+                          : tx.description === "메뉴 예약"
+                            ? t("payment.use")
+                            : tx.description === "예약 취소 환불"
+                              ? t("payment.refund")
+                              : tx.description === "예약 취소 환불 (관리자)"
+                                ? t("payment.refund_admin")
+                                : tx.description === "관리자 포인트 조정"
+                                  ? t("payment.admin_adjust")
+                                  : tx.description === "마음을 잇는 식탁 기부"
+                                    ? t("heartTable.donateBtn")
+                                    : tx.description || "-"
+                      }}
                     </td>
                   </tr>
                 </tbody>
@@ -888,68 +1017,101 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
             </div>
           </div>
           <div v-else class="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
-            <p class="text-gray-400 font-bold text-sm">{{ t('admin.stats.empty_logs') }}</p>
+            <p class="text-gray-400 font-bold text-sm">{{ t("admin.stats.empty_logs") }}</p>
           </div>
         </div>
       </div>
 
       <!-- 5. TAB: AI CONTROL -->
       <AdminAiControl v-if="activeTab === 'ai'" />
-
     </div>
 
     <!-- === MODALS === -->
 
     <!-- Modal: Menu Add / Edit -->
-    <div v-if="menuModalOpen" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-        <h3 class="text-xl font-black text-gray-900 mb-5">{{ isEditMode ? t('admin.menus.edit_menu') : t('admin.menus.new_menu') }}</h3>
-        
+    <div
+      v-if="menuModalOpen"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-200"
+      >
+        <h3 class="text-xl font-black text-gray-900 mb-5">
+          {{ isEditMode ? t("admin.menus.edit_menu") : t("admin.menus.new_menu") }}
+        </h3>
+
         <form @submit.prevent="saveMenu" class="space-y-4 text-sm font-semibold">
           <!-- Date and time -->
           <div>
             <label class="block text-xs font-bold text-gray-500 mb-1">식사 날짜</label>
-            <input v-model="menuForm.meal_date" type="date" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+            <input
+              v-model="menuForm.meal_date"
+              type="date"
+              required
+              class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+            />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-500 mb-1">식사 시간</label>
-              <input v-model="menuForm.meal_time" type="time" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+              <input
+                v-model="menuForm.meal_time"
+                type="time"
+                required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+              />
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 mb-1">예약 정원</label>
-              <input v-model.number="menuForm.capacity" type="number" min="1" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+              <input
+                v-model.number="menuForm.capacity"
+                type="number"
+                min="1"
+                required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+              />
             </div>
           </div>
 
           <!-- Type -->
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.menus.fields.type') }}</label>
+            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t("admin.menus.fields.type") }}</label>
             <select
               v-model="menuForm.type"
               class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"
             >
-              <option value="kr">{{ t('menu_types.kr') }}</option>
-              <option value="premium">{{ t('menu_types.premium') }}</option>
-              <option value="takeout">{{ t('menu_types.takeout') }}</option>
+              <option value="kr">{{ t("menu_types.kr") }}</option>
+              <option value="premium">{{ t("menu_types.premium") }}</option>
+              <option value="takeout">{{ t("menu_types.takeout") }}</option>
             </select>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-500 mb-1">예약 마감</label>
-              <input v-model="menuForm.reservation_deadline" type="datetime-local" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+              <input
+                v-model="menuForm.reservation_deadline"
+                type="datetime-local"
+                required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+              />
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 mb-1">예약금</label>
-              <input v-model.number="menuForm.deposit_amount" type="number" min="0" required class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]" />
+              <input
+                v-model.number="menuForm.deposit_amount"
+                type="number"
+                min="0"
+                required
+                class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32]"
+              />
             </div>
           </div>
 
           <!-- KO Title -->
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.menus.fields.title_ko') }}</label>
+            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t("admin.menus.fields.title_ko") }}</label>
             <input
               v-model="menuForm.title_ko"
               type="text"
@@ -961,7 +1123,7 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
 
           <!-- EN Title -->
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.menus.fields.title_en') }}</label>
+            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t("admin.menus.fields.title_en") }}</label>
             <input
               v-model="menuForm.title_en"
               type="text"
@@ -973,7 +1135,7 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
 
           <!-- Price -->
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.menus.fields.price') }}</label>
+            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t("admin.menus.fields.price") }}</label>
             <input
               v-model.number="menuForm.price"
               type="number"
@@ -991,14 +1153,14 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
               @click="menuModalOpen = false"
               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-colors"
             >
-              {{ t('admin.menus.cancel') }}
+              {{ t("admin.menus.cancel") }}
             </button>
             <button
               type="submit"
               :disabled="processing"
               class="px-4 py-2 bg-[#2E7D32] hover:bg-[#1b5e20] text-white rounded-xl font-bold shadow-md transition-colors disabled:opacity-50"
             >
-              {{ t('admin.menus.save') }}
+              {{ t("admin.menus.save") }}
             </button>
           </div>
         </form>
@@ -1006,14 +1168,28 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
     </div>
 
     <!-- Modal: Point Adjust -->
-    <div v-if="pointModalOpen" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-        <h3 class="text-xl font-black text-gray-900 mb-1">{{ t('admin.users.actions.adjust_modal_title') }}</h3>
-        <p class="text-xs text-gray-400 font-bold mb-5">{{ t('admin.users.actions.adjust_modal_target', { name: selectedUser?.name, student_id: selectedUser?.student_id }) }}</p>
+    <div
+      v-if="pointModalOpen"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-3xl max-w-sm w-full shadow-2xl p-6 border border-gray-100 animate-in fade-in zoom-in-95 duration-200"
+      >
+        <h3 class="text-xl font-black text-gray-900 mb-1">{{ t("admin.users.actions.adjust_modal_title") }}</h3>
+        <p class="text-xs text-gray-400 font-bold mb-5">
+          {{
+            t("admin.users.actions.adjust_modal_target", {
+              name: selectedUser?.name,
+              student_id: selectedUser?.student_id
+            })
+          }}
+        </p>
 
         <form @submit.prevent="adjustUserPoints" class="space-y-4 text-sm font-semibold">
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.users.actions.adjust_amount') }}</label>
+            <label class="block text-xs font-bold text-gray-500 mb-1">{{
+              t("admin.users.actions.adjust_amount")
+            }}</label>
             <input
               v-model="pointAdjustAmountStr"
               type="text"
@@ -1024,11 +1200,11 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
               placeholder="e.g. 10000 or -5000"
               class="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2E7D32] focus:border-transparent transition-all"
             />
-            <p class="text-[10px] text-gray-400 mt-1 font-bold">{{ t('admin.users.actions.adjust_amount_desc') }}</p>
+            <p class="text-[10px] text-gray-400 mt-1 font-bold">{{ t("admin.users.actions.adjust_amount_desc") }}</p>
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t('admin.users.actions.adjust_desc') }}</label>
+            <label class="block text-xs font-bold text-gray-500 mb-1">{{ t("admin.users.actions.adjust_desc") }}</label>
             <input
               v-model="pointAdjustDesc"
               type="text"
@@ -1045,14 +1221,14 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
               @click="pointModalOpen = false"
               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold transition-colors"
             >
-              {{ t('admin.menus.cancel') }}
+              {{ t("admin.menus.cancel") }}
             </button>
             <button
               type="submit"
               :disabled="processing"
               class="px-4 py-2 bg-[#2E7D32] hover:bg-[#1b5e20] text-white rounded-xl font-bold shadow-md transition-colors disabled:opacity-50"
             >
-              {{ t('admin.menus.save') }}
+              {{ t("admin.menus.save") }}
             </button>
           </div>
         </form>
@@ -1063,10 +1239,9 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
     <div v-if="processing" class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
         <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#4ade80] border-t-transparent mb-4"></div>
-        <div class="text-gray-700 font-bold">{{ t('admin.processing') }}</div>
+        <div class="text-gray-700 font-bold">{{ t("admin.processing") }}</div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -1077,7 +1252,7 @@ const selectedMenus = computed(() => dbMenus.value.filter(menu => menu.meal_date
 }
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 </style>

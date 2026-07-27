@@ -1,95 +1,105 @@
 <script setup lang="ts">
+const { t, locale } = useI18n({ useScope: "global" });
+const api = useApi();
+const { userId } = useUserProfile();
 
-const { t, locale } = useI18n({ useScope: 'global' })
-const api = useApi()
-const { userId } = useUserProfile()
+import type { Transaction } from "~/types/api";
 
-import type { Transaction } from '~/types/api'
-
-const loading = ref(true)
-const errorMessage = ref('')
-const transactions = ref<Transaction[]>([])
+const loading = ref(true);
+const errorMessage = ref("");
+const transactions = ref<Transaction[]>([]);
 
 const formatDate = (value: string) => {
-  return new Intl.DateTimeFormat(locale.value === 'ko' ? 'ko-KR' : 'en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(value))
-}
+  return new Intl.DateTimeFormat(locale.value === "ko" ? "ko-KR" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+};
 
 const fetchTransactions = async () => {
   if (!userId.value) {
-    loading.value = false
-    return
+    loading.value = false;
+    return;
   }
 
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = "";
 
   try {
-    const data = await api.transactions.getMine()
-    transactions.value = data.map(tx => ({
+    const data = await api.transactions.getMine();
+    transactions.value = data.map((tx) => ({
       id: tx.id,
       amount: tx.amount,
-      type: (tx.type || 'deduct') as 'charge' | 'deduct' | 'refund',
+      type: (tx.type || "deduct") as "charge" | "deduct" | "refund",
       description: tx.description,
-      created_at: tx.created_at || ''
-    }))
+      created_at: tx.created_at || ""
+    }));
   } catch (error) {
-    errorMessage.value = api.getErrorMessage(error)
+    errorMessage.value = api.getErrorMessage(error);
   }
 
-  loading.value = false
-}
+  loading.value = false;
+};
 
 const getTransactionDescription = (tx: Transaction) => {
-  if (tx.description === '포인트 충전') {
-    return t('payment.charge')
+  if (tx.description === "포인트 충전") {
+    return t("payment.charge");
   }
-  if (tx.description === '메뉴 예약') {
-    return t('payment.use')
+  if (tx.description === "메뉴 예약") {
+    return t("payment.use");
   }
-  if (tx.description === '예약 취소 환불') {
-    return t('payment.refund')
+  if (tx.description === "예약 취소 환불") {
+    return t("payment.refund");
   }
-  if (tx.description === '예약 취소 환불 (관리자)') {
-    return t('payment.refund_admin')
+  if (tx.description === "예약 취소 환불 (관리자)") {
+    return t("payment.refund_admin");
   }
-  if (tx.description === '관리자 포인트 조정') {
-    return t('payment.admin_adjust')
+  if (tx.description === "관리자 포인트 조정") {
+    return t("payment.admin_adjust");
   }
-  return tx.description || (tx.type === 'charge' ? t('payment.charge') : t('payment.use'))
-}
+  return tx.description || (tx.type === "charge" ? t("payment.charge") : t("payment.use"));
+};
 
 watch(
   () => userId.value,
   () => fetchTransactions(),
   { immediate: true }
-)
+);
 </script>
 
 <template>
   <div>
-    <h1 class="text-2xl md:text-3xl font-black text-gray-800 mb-6">{{ t('point_history') }}</h1>
+    <h1 class="text-2xl md:text-3xl font-black text-gray-800 mb-6">{{ t("point_history") }}</h1>
 
     <div v-if="loading" class="bg-white rounded-[15px] p-8 text-center border border-[#eee]">
-      <div class="animate-spin rounded-full h-10 w-10 border-4 border-[#4ade80] border-t-transparent mx-auto mb-4"></div>
-      <p class="text-sm text-gray-500">{{ t('payment.loading_history') }}</p>
+      <div
+        class="animate-spin rounded-full h-10 w-10 border-4 border-[#4ade80] border-t-transparent mx-auto mb-4"
+      ></div>
+      <p class="text-sm text-gray-500">{{ t("payment.loading_history") }}</p>
     </div>
 
-    <div v-else-if="errorMessage" class="bg-red-50 text-red-600 rounded-[15px] p-5 border border-red-100 text-sm font-bold">
+    <div
+      v-else-if="errorMessage"
+      class="bg-red-50 text-red-600 rounded-[15px] p-5 border border-red-100 text-sm font-bold"
+    >
       {{ errorMessage }}
     </div>
 
-    <div v-else-if="!transactions.length" class="bg-white rounded-[15px] p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-[#eee] flex flex-col items-center justify-center min-h-[40vh]">
+    <div
+      v-else-if="!transactions.length"
+      class="bg-white rounded-[15px] p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.05)] border border-[#eee] flex flex-col items-center justify-center min-h-[40vh]"
+    >
       <div class="text-5xl mb-6">💳</div>
-      <p class="text-[#777] font-medium">{{ t('empty_history') }}</p>
+      <p class="text-[#777] font-medium">{{ t("empty_history") }}</p>
     </div>
 
-    <div v-else class="bg-white border border-[#eee] rounded-[15px] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+    <div
+      v-else
+      class="bg-white border border-[#eee] rounded-[15px] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+    >
       <div
         v-for="transaction in transactions"
         :key="transaction.id"
@@ -103,16 +113,11 @@ watch(
         </div>
 
         <div class="text-right">
-          <div 
-            :class="[
-              'font-black text-[18px]',
-              transaction.amount > 0 ? 'text-[#2E7D32]' : 'text-gray-800'
-            ]"
-          >
-            {{ transaction.amount > 0 ? '+' : '' }}{{ transaction.amount.toLocaleString() }}{{ t('payment.unit') }}
+          <div :class="['font-black text-[18px]', transaction.amount > 0 ? 'text-[#2E7D32]' : 'text-gray-800']">
+            {{ transaction.amount > 0 ? "+" : "" }}{{ transaction.amount.toLocaleString() }}{{ t("payment.unit") }}
           </div>
           <div class="text-[11px] text-[#777] mt-1">
-            {{ transaction.type === 'charge' ? t('payment.complete') : t('payment.used') }}
+            {{ transaction.type === "charge" ? t("payment.complete") : t("payment.used") }}
           </div>
         </div>
       </div>
