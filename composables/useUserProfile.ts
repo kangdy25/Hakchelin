@@ -1,5 +1,3 @@
-import type { Database } from '~/types/database.types'
-
 type UserProfile = {
   name: string
   student_id: string
@@ -15,21 +13,15 @@ const emptyProfile = (): UserProfile => ({
 })
 
 export const useUserProfile = () => {
-  const supabase = useSupabaseClient<Database>()
-  const authUser = useSupabaseUser()
+  const api = useApi()
+  const auth = useAuth()
 
   const profile = useState<UserProfile>('user-profile', emptyProfile)
   const loading = useState('user-profile-loading', () => false)
   const loadedUserId = useState<string | null>('user-profile-loaded-user-id', () => null)
-  const userId = computed(() => {
-    const user = authUser.value as { sub?: string; id?: string } | null
-    return user?.sub || user?.id || null
-  })
+  const userId = auth.userId
 
-  const userMetadata = computed(() => {
-    const user = authUser.value as { user_metadata?: { name?: string; student_id?: string } } | null
-    return user?.user_metadata || {}
-  })
+  const userMetadata = computed(() => auth.user.value?.metadata || {})
 
   const fallbackProfile = (): UserProfile => ({
     name: userMetadata.value.name || '학생',
@@ -55,13 +47,8 @@ export const useUserProfile = () => {
     loading.value = true
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('name, student_id, current_point, role')
-        .eq('id', currentUserId)
-        .single()
-
-      if (error || !data) {
+      const data = await api.users.getMine()
+      if (!data) {
         profile.value = fallbackProfile()
       } else {
         profile.value = {
@@ -71,6 +58,10 @@ export const useUserProfile = () => {
           role: (data.role || 'student') as 'student' | 'admin'
         }
       }
+      loadedUserId.value = currentUserId
+      return profile.value
+    } catch {
+      profile.value = fallbackProfile()
 
       loadedUserId.value = currentUserId
       return profile.value

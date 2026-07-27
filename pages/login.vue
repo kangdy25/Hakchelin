@@ -5,8 +5,7 @@ definePageMeta({
   layout: 'auth'
 })
 
-const supabase = useSupabaseClient()
-const authUser = useSupabaseUser()
+const auth = useAuth()
 const isLoginMode = ref(true)
 const email = ref('')
 const password = ref('')
@@ -27,29 +26,11 @@ const handleSubmit = async () => {
   try {
     if (isLoginMode.value) {
       // Login
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.value,
-        password: password.value,
-      })
-      if (error) throw error
-
-      const { data: claimsData } = await supabase.auth.getClaims()
-      authUser.value = claimsData?.claims ?? null
+      await auth.signIn({ email: email.value, password: password.value })
       await navigateTo('/', { replace: true })
     } else {
       // Signup
-      const { error } = await supabase.auth.signUp({
-        email: email.value,
-        password: password.value,
-        options: {
-          data: {
-            name: name.value,
-            student_id: studentId.value,
-            role: 'student'
-          }
-        }
-      })
-      if (error) throw error
+      await auth.signUp({ email: email.value, password: password.value, name: name.value, studentId: studentId.value })
       
       alert('회원가입이 완료되었습니다! 화면이 로그인으로 전환됩니다.')
       isLoginMode.value = true

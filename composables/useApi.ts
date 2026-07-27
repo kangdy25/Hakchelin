@@ -147,6 +147,17 @@ export const useApi = () => {
     return (data || []) as User[]
   }
 
+  const getMyProfile = async () => {
+    const userId = await currentUserId()
+    const { data, error } = await supabase
+      .from('users')
+      .select('name, student_id, current_point, role')
+      .eq('id', userId)
+      .single()
+    if (error) throw new Error(error.message)
+    return data as Pick<User, 'name' | 'student_id' | 'current_point' | 'role'>
+  }
+
   const adjustUserPoints = async ({ userId, amount, description }: { userId: string; amount: number; description: string }) => {
     const { error } = await supabase.rpc('admin_adjust_points', { p_user_id: userId, p_amount: amount, p_description: description })
     if (error) throw new Error(error.message)
@@ -216,7 +227,7 @@ export const useApi = () => {
     menus: { get: getMenus, create: createMenu, update: updateMenu, deactivate: deactivateMenu, getByIds: getMenusByIds },
     reservations: { reserve: reserveMenu, getMine: getMyReservations, getAll: getReservations, cancel: cancelReservation, useTicket, cancelTicket },
     transactions: { getMine: getMyTransactions, getAll: getTransactions },
-    users: { getAll: getUsers, adjustPoints: adjustUserPoints, updateRole: updateUserRole },
+    users: { getAll: getUsers, getMine: getMyProfile, adjustPoints: adjustUserPoints, updateRole: updateUserRole },
     points: { donate: donatePoints, createOrder: createPointOrder, confirmPayment: confirmTossPayment },
     chat: { getMessages: getChatMessages, stream: streamChat },
     ai: { getLogs: getAiLogs }

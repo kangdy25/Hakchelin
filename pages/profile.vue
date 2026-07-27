@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Database, Reservation } from '~/types/database.types'
+import type { Reservation } from '~/types/database.types'
 
 const { t, locale } = useI18n({ useScope: 'global' })
-const supabase = useSupabaseClient<Database>()
+const api = useApi()
+const auth = useAuth()
 const { profile, isAdmin, userId } = useUserProfile()
 const { showAlert } = useModal()
 
@@ -12,10 +13,7 @@ const loadingStats = ref(true)
 
 const fetchStats = async () => {
   if (!userId.value) return
-  const { data } = await supabase
-    .from('reservations')
-    .select('options, status')
-    .eq('user_id', userId.value)
+  const data = await api.reservations.getMine()
   if (data) {
     reservations.value = data.map(r => ({
       status: r.status,
@@ -35,10 +33,10 @@ const ecoCount = computed(() => {
 })
 
 const handleLogout = async () => {
-  const { error } = await supabase.auth.signOut()
-  if (!error) {
+  try {
+    await auth.signOut()
     navigateTo('/login')
-  } else {
+  } catch {
     await showAlert(t('logout_error'), { title: '오류', type: 'error' })
   }
 }

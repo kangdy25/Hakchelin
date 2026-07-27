@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n({ useScope: 'global' })
-const user = useSupabaseUser()
+const { user } = useAuth()
 const { isAdmin } = useUserProfile()
 </script>
 
@@ -61,11 +61,11 @@ const { isAdmin } = useUserProfile()
       
       <div class="mt-auto bg-[#f8f9fa] p-[15px] rounded-[10px] border border-[#eee] flex items-center gap-3">
          <div class="w-[40px] h-[40px] bg-white rounded-[20px] flex items-center justify-center text-[#2E7D32] font-bold border border-[#ddd] overflow-hidden">
-            {{ user?.user_metadata?.name?.[0] || '👤' }}
+            {{ user?.metadata?.name?.[0] || '👤' }}
          </div>
          <div>
-           <div class="font-bold text-[14px]">{{ user?.user_metadata?.name || '학생' }}</div>
-           <div class="text-[12px] text-[#777]">{{ user?.user_metadata?.student_id || 'N/A' }}</div>
+           <div class="font-bold text-[14px]">{{ user?.metadata?.name || '학생' }}</div>
+           <div class="text-[12px] text-[#777]">{{ user?.metadata?.student_id || 'N/A' }}</div>
          </div>
       </div>
     </aside>
