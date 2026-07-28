@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Menu } from "~/types/api";
+import type { CreateMenuInput, Menu, UpdateMenuInput } from "~/types/api";
 import { useAdminMenus } from "~/composables/admin/useAdminMenus";
 import { formatDateTime, formatMealDate, getKstDateString, toKstDateTimeLocal } from "~/utils/date";
 import { formatPoints } from "~/utils/format";
@@ -15,9 +15,11 @@ const selectedDate = ref(today);
 const menuModalOpen = ref(false);
 const isEditMode = ref(false);
 const dayCodes = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-const dayOfWeek = (date: string) => dayCodes[new Date(`${date}T00:00:00+09:00`).getDay()];
+const dayOfWeek = (date: string): Menu["day_of_week"] => dayCodes[new Date(`${date}T00:00:00+09:00`).getDay()] ?? "mon";
 const defaultDeadline = (date: string) => `${date}T11:00`;
-const emptyForm = (date: string): Omit<Menu, "created_at"> => ({
+type MenuForm = UpdateMenuInput & { id: string };
+
+const emptyForm = (date: string): MenuForm => ({
   id: "",
   day_of_week: dayOfWeek(date),
   meal_date: date,
@@ -43,12 +45,35 @@ const openAddMenuModal = () => {
 const openEditMenuModal = (menu: Menu) => {
   isEditMode.value = true;
   menuForm.value = {
-    ...menu,
+    id: menu.id,
+    day_of_week: menu.day_of_week,
+    meal_date: menu.meal_date,
+    meal_time: menu.meal_time,
     type: mapMenuType(menu.type),
-    reservation_deadline: toKstDateTimeLocal(menu.reservation_deadline)
+    title_ko: menu.title_ko,
+    title_en: menu.title_en,
+    price: menu.price,
+    capacity: menu.capacity,
+    reservation_deadline: toKstDateTimeLocal(menu.reservation_deadline),
+    deposit_amount: menu.deposit_amount,
+    is_active: menu.is_active
   };
   menuModalOpen.value = true;
 };
+
+const toMenuInput = (form: MenuForm): UpdateMenuInput => ({
+  day_of_week: dayOfWeek(form.meal_date),
+  meal_date: form.meal_date,
+  meal_time: form.meal_time,
+  type: form.type,
+  title_ko: form.title_ko,
+  title_en: form.title_en,
+  price: form.price,
+  capacity: form.capacity,
+  reservation_deadline: form.reservation_deadline,
+  deposit_amount: form.deposit_amount,
+  is_active: form.is_active
+});
 
 const saveMenu = async () => {
   if (!menuForm.value.title_ko || !menuForm.value.title_en) {
@@ -56,14 +81,15 @@ const saveMenu = async () => {
     return;
   }
 
-  const { id, ...input } = menuForm.value;
-  const payload = { ...input, day_of_week: dayOfWeek(input.meal_date) };
+  const { id } = menuForm.value;
+  const payload = toMenuInput(menuForm.value);
   try {
     if (isEditMode.value) {
       await update(id, payload);
       await showAlert(t("admin.menus.alerts.updated"), { type: "success" });
     } else {
-      await create({ ...payload, id: crypto.randomUUID() });
+      const createInput: CreateMenuInput = { ...payload, id: crypto.randomUUID() };
+      await create(createInput);
       await showAlert(t("admin.menus.alerts.saved"), { type: "success" });
     }
     menuModalOpen.value = false;

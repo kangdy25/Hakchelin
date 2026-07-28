@@ -14,6 +14,7 @@ const selectedUser = ref<User | null>(null);
 const amountText = ref("10,000");
 const amount = ref(10_000);
 const description = ref("");
+const displayPoints = (value: number | null | undefined) => formatPoints(value, locale.value);
 
 const filteredUsers = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -55,7 +56,7 @@ const submitPointAdjustment = async () => {
     await adjustPoints({ userId: selectedUser.value.id, amount: amount.value, description: description.value });
     await showAlert(
       t("admin.users.actions.adjust_success", {
-        amount: `${amount.value > 0 ? "+" : ""}${formatPoints(amount.value, locale)}`
+        amount: `${amount.value > 0 ? "+" : ""}${displayPoints(amount.value)}`
       }),
       { type: "success" }
     );
@@ -131,7 +132,7 @@ onMounted(load);
                   >{{ t(`admin.users.roles.${user.role || "student"}`) }}</span
                 >
               </td>
-              <td class="px-6 py-4 font-black text-[#2E7D32]">{{ formatPoints(user.current_point, locale) }}P</td>
+              <td class="px-6 py-4 font-black text-[#2E7D32]">{{ displayPoints(user.current_point) }}P</td>
               <td class="px-6 py-4 text-right">
                 <div class="flex justify-end gap-2">
                   <button
