@@ -1,23 +1,17 @@
 <script setup lang="ts">
+import type { Transaction } from "~/types/api";
+import { formatDateTime } from "~/utils/date";
+import { formatPoints } from "~/utils/format";
+
 const { t, locale } = useI18n({ useScope: "global" });
 const api = useApi();
 const { userId } = useUserProfile();
-
-import type { Transaction } from "~/types/api";
 
 const loading = ref(true);
 const errorMessage = ref("");
 const transactions = ref<Transaction[]>([]);
 
-const formatDate = (value: string) => {
-  return new Intl.DateTimeFormat(locale.value === "ko" ? "ko-KR" : "en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
-};
+const formatDate = (value: string | null) => formatDateTime(value, locale.value);
 
 const fetchTransactions = async () => {
   if (!userId.value) {
@@ -32,6 +26,7 @@ const fetchTransactions = async () => {
     const data = await api.transactions.getMine();
     transactions.value = data.map((tx) => ({
       id: tx.id,
+      user_id: tx.user_id,
       amount: tx.amount,
       type: (tx.type || "deduct") as "charge" | "deduct" | "refund",
       description: tx.description,
@@ -114,7 +109,7 @@ watch(
 
         <div class="text-right">
           <div :class="['font-black text-[18px]', transaction.amount > 0 ? 'text-[#2E7D32]' : 'text-gray-800']">
-            {{ transaction.amount > 0 ? "+" : "" }}{{ transaction.amount.toLocaleString() }}{{ t("payment.unit") }}
+            {{ transaction.amount > 0 ? "+" : "" }}{{ formatPoints(transaction.amount, locale) }}{{ t("payment.unit") }}
           </div>
           <div class="text-[11px] text-[#777] mt-1">
             {{ transaction.type === "charge" ? t("payment.complete") : t("payment.used") }}

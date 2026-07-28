@@ -407,6 +407,10 @@ export type Database = {
           point_amount: number;
         }[];
       };
+      donate_points: {
+        Args: { p_amount: number; p_user_id: string };
+        Returns: undefined;
+      };
       is_admin: { Args: { p_user_id: string }; Returns: boolean };
       process_no_shows: { Args: Record<PropertyKey, never>; Returns: number };
       reserve_menu: {

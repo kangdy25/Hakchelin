@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware(async (_to, _from) => {
   // 관리자가 아니라면 메인 페이지로 리다이렉트
   if (!isAdmin.value) {
     if (process.client) {
-      alert("관리자 권한이 필요합니다. (Admin access required)");
+      useModal().showAlert("관리자 권한이 필요합니다. (Admin access required)", { type: "warning" });
     }
     return navigateTo("/");
   }

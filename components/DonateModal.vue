@@ -12,7 +12,7 @@ const emit = defineEmits<{
 const { t, locale } = useI18n();
 const api = useApi();
 const { profile: userData, userId, refreshProfile, adjustPoint } = useUserProfile();
-const { showAlert } = useModal();
+const { showAlert, showConfirm } = useModal();
 
 const amount = ref<number>(1000);
 const customAmountStr = ref<string>("1,000");
@@ -144,9 +144,7 @@ const handleDonate = async () => {
       ? `${amount.value.toLocaleString()}P를 기부하시겠습니까?`
       : `Would you like to donate ${amount.value.toLocaleString()}P?`;
 
-  if (!confirm(confirmMsg)) {
-    return;
-  }
+  if (!(await showConfirm(confirmMsg))) return;
 
   isDonating.value = true;
   try {

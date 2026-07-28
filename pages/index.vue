@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import type { Menu } from "~/types/api";
+import type { MealOptions, Menu } from "~/types/api";
+import { formatMealDate, getKstDateString } from "~/utils/date";
+import { mapMenuType } from "~/utils/menu";
 
 interface ReservePayload {
   menu_id: string;
   price: number;
-  options: {
-    rice?: number;
-    main?: number;
-    [key: string]: any;
-  };
+  options: MealOptions;
 }
 
 const { t, tm, rt, locale } = useI18n({ useScope: "global" });
@@ -17,7 +15,7 @@ const api = useApi();
 const { profile, userId, refreshProfile, adjustPoint } = useUserProfile();
 const { showAlert } = useModal();
 
-const today = new Date().toISOString().slice(0, 10);
+const today = getKstDateString();
 const selectedDate = ref("");
 const loading = ref(false);
 
@@ -25,21 +23,7 @@ const dbMenus = ref<Menu[]>([]);
 const availableDates = computed(() => [...new Set(dbMenus.value.map((menu) => menu.meal_date))]);
 const selectedMenus = computed(() => dbMenus.value.filter((menu) => menu.meal_date === selectedDate.value));
 
-const formatMealDate = (date: string) =>
-  new Intl.DateTimeFormat(locale.value === "ko" ? "ko-KR" : "en-US", {
-    month: "short",
-    day: "numeric",
-    weekday: "short"
-  }).format(new Date(`${date}T00:00:00`));
-
-// 한글 타입(DB 저장값)을 영문 코드(UI 뱃지용)로 변환
-const mapMenuType = (koType: string): "kr" | "premium" | "takeout" => {
-  if (["kr", "premium", "takeout"].includes(koType)) return koType as "kr" | "premium" | "takeout";
-  if (koType === "한식") return "kr";
-  if (koType === "일품") return "premium";
-  if (koType === "포장") return "takeout";
-  return "kr";
-};
+const displayMealDate = (date: string) => formatMealDate(date, locale.value);
 
 // Supabase 메뉴 불러오기
 const fetchMenus = async () => {
@@ -50,7 +34,7 @@ const fetchMenus = async () => {
       day_of_week: (menu.day_of_week || "mon") as "mon" | "tue" | "wed" | "thu" | "fri",
       meal_date: menu.meal_date,
       meal_time: menu.meal_time,
-      type: mapMenuType(menu.type || "kr"),
+      type: mapMenuType(menu.type),
       title_ko: menu.title_ko,
       title_en: menu.title_en,
       price: Number(menu.price || 4500),
@@ -150,7 +134,7 @@ const onReserve = async (payload: ReservePayload) => {
         class="flex-1 border-none bg-transparent py-[10px] text-[16px] rounded-[8px] text-[#777] font-bold cursor-pointer transition-colors"
         :class="{ 'bg-[#b2fab4] text-black': selectedDate === date }"
       >
-        <span>{{ formatMealDate(date) }}</span>
+        <span>{{ displayMealDate(date) }}</span>
       </button>
     </div>
 

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { Reservation } from "~/types/api";
+import { formatDateTime } from "~/utils/date";
+import { reservationStatusClass } from "~/utils/menu";
 
 const { t, locale } = useI18n({ useScope: "global" });
 const api = useApi();
@@ -28,12 +30,7 @@ const statusLabel = computed<Record<string, string>>(() => ({
   no_show: "노쇼"
 }));
 
-const statusClass: Record<string, string> = {
-  reserved: "bg-[#E8F5E9] text-[#2E7D32]",
-  used: "bg-[#E3F2FD] text-[#1565C0]",
-  cancelled: "bg-[#FCE4EC] text-[#C2185B]",
-  no_show: "bg-amber-100 text-amber-800"
-};
+const statusClass = reservationStatusClass;
 
 const riceLabel = (value?: number) => {
   if (value === 1) return t("optRice1");
@@ -46,14 +43,7 @@ const mainLabel = (value?: number) => {
   return t("optMain0");
 };
 
-const formatDate = (value: string) => {
-  return new Intl.DateTimeFormat(locale.value === "ko" ? "ko-KR" : "en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
-};
+const formatDate = (value: string | null) => formatDateTime(value, locale.value);
 
 const menuTitle = (reservation: Reservation) => {
   if (!reservation.menus) return t("payment.deleted_menu");
@@ -99,8 +89,7 @@ const fetchReservations = async () => {
 
 const handleCancel = async (reservation: Reservation) => {
   if (cancellingId.value) return;
-  const currentUserId = userId.value;
-  if (!currentUserId) return;
+  if (!userId.value) return;
 
   const confirmed = await showConfirm(t("payment.cancel_confirm"), t("payment.cancel_btn"));
   if (!confirmed) return;

@@ -1,42 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { useAdminAiLogs } from "~/composables/admin/useAdminAiLogs";
+import { formatDateTime } from "~/utils/date";
 
-type AiLog = {
-  id: string;
-  created_at: string;
-  stage: string;
-  model: string | null;
-  latency_ms: number;
-  status_code: number;
-  error_message: string | null;
-  users?: { name: string; student_id: string } | null;
-};
-
-const api = useApi();
 const { locale } = useI18n({ useScope: "global" });
-const loading = ref(true);
-const logs = ref<AiLog[]>([]);
-const error = ref("");
-
+const { logs, loading, error, load } = useAdminAiLogs();
 const isKo = computed(() => locale.value === "ko");
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat(isKo.value ? "ko-KR" : "en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
-
-const load = async () => {
-  loading.value = true;
-  error.value = "";
-  try {
-    logs.value = await api.ai.getLogs();
-  } catch (loadError) {
-    error.value = api.getErrorMessage(loadError);
-  }
-  loading.value = false;
-};
 
 onMounted(load);
 </script>
@@ -44,20 +12,15 @@ onMounted(load);
 <template>
   <section class="space-y-5">
     <div class="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-      <div>
-        <div>
-          <h2 class="text-lg font-black text-gray-900">🤖 {{ isKo ? "AI 관리" : "AI Control" }}</h2>
-          <p class="mt-1 text-xs font-medium text-gray-500">
-            {{
-              isKo
-                ? "프롬프트와 가드레일은 개발자가 코드 배포로만 관리합니다. 이 화면에서는 운영 로그를 확인할 수 있습니다."
-                : "Prompts and guardrails are managed only through developer deployments. This page provides operational logs."
-            }}
-          </p>
-        </div>
-      </div>
+      <h2 class="text-lg font-black text-gray-900">🤖 {{ isKo ? "AI 관리" : "AI Control" }}</h2>
+      <p class="mt-1 text-xs font-medium text-gray-500">
+        {{
+          isKo
+            ? "프롬프트와 가드레일은 개발자가 코드 배포로만 관리합니다. 이 화면에서는 운영 로그를 확인할 수 있습니다."
+            : "Prompts and guardrails are managed only through developer deployments. This page provides operational logs."
+        }}
+      </p>
     </div>
-
     <div class="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
       <div class="border-b border-gray-100 px-5 py-4">
         <h2 class="font-black text-gray-900">{{ isKo ? "최근 AI 요청 로그" : "Recent AI request logs" }}</h2>
@@ -77,13 +40,13 @@ onMounted(load);
           </thead>
           <tbody class="divide-y divide-gray-100 text-gray-700">
             <tr v-for="log in logs" :key="log.id">
-              <td class="px-5 py-3">{{ formatDate(log.created_at) }}</td>
+              <td class="px-5 py-3">{{ formatDateTime(log.created_at, locale) }}</td>
               <td class="px-5 py-3">{{ log.users?.name || "-" }}</td>
               <td class="px-5 py-3 font-bold">{{ log.stage }}</td>
               <td class="px-5 py-3">{{ log.model || "-" }}</td>
               <td class="px-5 py-3">{{ log.latency_ms }}ms</td>
               <td class="px-5 py-3">
-                <span :class="log.status_code < 400 ? 'text-green-700' : 'text-red-600'" class="font-black">{{
+                <span class="font-black" :class="log.status_code < 400 ? 'text-green-700' : 'text-red-600'">{{
                   log.status_code
                 }}</span>
               </td>

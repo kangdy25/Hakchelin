@@ -11,7 +11,7 @@ export type TransactionType = "charge" | "deduct" | "refund";
 export type MealOptions = {
   rice?: number;
   main?: number;
-  [key: string]: unknown;
+  [key: string]: number | undefined;
 };
 
 export interface User {

@@ -62,7 +62,7 @@ const { t } = useI18n();
             @click="closeAlert"
             class="w-full py-3.5 bg-primary hover:bg-primary-dark active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-green-100 transition-all duration-150 cursor-pointer"
           >
-            {{ t("admin.menus.save") || "확인" }}
+            {{ t("common.confirm") }}
           </button>
         </div>
       </div>
@@ -103,13 +103,13 @@ const { t } = useI18n();
               @click="closeConfirm(false)"
               class="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] text-gray-600 font-bold rounded-xl transition-all duration-150 cursor-pointer"
             >
-              {{ t("admin.menus.cancel") || "취소" }}
+              {{ t("common.cancel") }}
             </button>
             <button
               @click="closeConfirm(true)"
               class="flex-1 py-3.5 bg-primary hover:bg-primary-dark active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-green-100 transition-all duration-150 cursor-pointer"
             >
-              {{ t("admin.menus.save") || "확인" }}
+              {{ t("common.confirm") }}
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ definePageMeta({
 });
 
 const auth = useAuth();
+const { showAlert } = useModal();
 const isLoginMode = ref(true);
 const email = ref("");
 const password = ref("");
@@ -32,7 +33,7 @@ const handleSubmit = async () => {
       // Signup
       await auth.signUp({ email: email.value, password: password.value, name: name.value, studentId: studentId.value });
 
-      alert("회원가입이 완료되었습니다! 화면이 로그인으로 전환됩니다.");
+      await showAlert("회원가입이 완료되었습니다! 화면이 로그인으로 전환됩니다.", { type: "success" });
       isLoginMode.value = true;
       password.value = "";
     }

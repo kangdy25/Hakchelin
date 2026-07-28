@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 const { t, locale } = useI18n({ useScope: "global" });
+const { showConfirm } = useModal();
 
 const props = defineProps<{
   menu: {
@@ -28,19 +29,18 @@ const typeClass = computed(() => {
 const title = computed(() => (locale.value === "ko" ? props.menu.title_ko : props.menu.title_en));
 const finalPrice = computed(() => props.menu.price + (selectedMain.value === 1 ? 1000 : 0) + props.menu.deposit_amount);
 
-const handleReserve = () => {
+const handleReserve = async () => {
   if (props.disabled) return;
 
-  if (confirm(t("alert"))) {
-    emit("reserve", {
-      menu_id: props.menu.id,
-      price: finalPrice.value,
-      options: {
-        rice: selectedRice.value,
-        main: selectedMain.value
-      }
-    });
-  }
+  if (!(await showConfirm(t("alert")))) return;
+  emit("reserve", {
+    menu_id: props.menu.id,
+    price: finalPrice.value,
+    options: {
+      rice: selectedRice.value,
+      main: selectedMain.value
+    }
+  });
 };
 </script>
 

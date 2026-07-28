@@ -1,5 +1,13 @@
 import type { Database } from "~/types/supabase";
-import type { CreateMenuInput, Menu, MealOptions, Reservation, Transaction, UpdateMenuInput, User } from "~/types/api";
+import type {
+  CreateMenuInput,
+  Menu,
+  MealOptions,
+  Reservation,
+  Transaction,
+  UpdateMenuInput,
+  User
+} from "~/types/api";
 
 type ChatRole = "user" | "assistant";
 type ChatMessage = { role: ChatRole; content: string };
@@ -111,7 +119,7 @@ export const useApi = () => {
       .select("id, type, title_ko, title_en, day_of_week, price")
       .in("id", ids);
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []) as Pick<Menu, "id" | "type" | "title_ko" | "title_en" | "day_of_week" | "price">[];
   };
 
   const cancelReservation = async (reservationId: string) => {
@@ -134,7 +142,7 @@ export const useApi = () => {
     const userId = await currentUserId();
     const { data, error } = await supabase
       .from("transactions")
-      .select("id, amount, type, description, created_at")
+      .select("id, user_id, amount, type, description, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);

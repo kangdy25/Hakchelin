@@ -56,6 +56,11 @@ export default {
   student_id: "학번:",
   logout: "로그아웃",
   logout_error: "로그아웃 중 오류가 발생했습니다.",
+  common: {
+    confirm: "확인",
+    cancel: "취소",
+    retry: "다시 시도"
+  },
   status: {
     reserved: "예약완료",
     used: "사용완료",
@@ -87,6 +92,7 @@ export default {
     dashboard: "대시보드",
     sub_desc: "학슐랭 시스템 운영 및 예약 관리를 담당합니다.",
     loading: "데이터를 안전하게 불러오는 중입니다...",
+    load_error: "관리자 데이터를 불러오는 중 문제가 발생했습니다.",
     processing: "작업 처리 중입니다...",
     tabs: {
       menus: "식단 관리",
@@ -111,6 +117,11 @@ export default {
       reservation_deadline: "예약 마감: {date}",
       fields: {
         day: "요일",
+        date: "식사 날짜",
+        time: "식사 시간",
+        capacity: "예약 정원",
+        deadline: "예약 마감",
+        deposit: "예약금",
         type: "식단 타입",
         title_ko: "메뉴명 (한글)",
         title_en: "메뉴명 (영문)",
@@ -119,6 +130,7 @@ export default {
         title_ko_placeholder: "예: 맛있는 매콤 제육 볶음",
         title_en_placeholder: "예: Spicy Stir-fried Pork"
       },
+      empty: "선택한 날짜에 등록된 메뉴가 없습니다.",
       alerts: {
         fill_both: "한글명과 영문명을 모두 입력해주세요.",
         saved: "새로운 메뉴가 등록되었습니다.",

@@ -56,6 +56,11 @@ export default {
   student_id: "Student ID:",
   logout: "Logout",
   logout_error: "An error occurred during logout.",
+  common: {
+    confirm: "Confirm",
+    cancel: "Cancel",
+    retry: "Try again"
+  },
   status: {
     reserved: "Reserved",
     used: "Used",
@@ -87,6 +92,7 @@ export default {
     dashboard: "Dashboard",
     sub_desc: "Responsible for Hakchelin system operations and reservation management.",
     loading: "Loading data safely...",
+    load_error: "A problem occurred while loading the administrator data.",
     processing: "Processing your request...",
     tabs: {
       menus: "Menus",
@@ -111,6 +117,11 @@ export default {
       reservation_deadline: "Reservation deadline: {date}",
       fields: {
         day: "Day of Week",
+        date: "Meal Date",
+        time: "Meal Time",
+        capacity: "Capacity",
+        deadline: "Reservation Deadline",
+        deposit: "Deposit",
         type: "Menu Type",
         title_ko: "Menu Title (Korean)",
         title_en: "Menu Title (English)",
@@ -119,6 +130,7 @@ export default {
         title_ko_placeholder: "e.g., 맛있는 매콤 제육 볶음",
         title_en_placeholder: "e.g., Spicy Stir-fried Pork"
       },
+      empty: "No menus are registered for the selected date.",
       alerts: {
         fill_both: "Please fill in both Korean and English titles.",
         saved: "New menu has been registered successfully.",
