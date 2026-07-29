@@ -1,59 +1,120 @@
-# 🍱 학슐랭 (Hakchelin) - 대학생 맞춤형 스마트 학식 시스템
+# 🍱 학슐랭 Hakchelin
 
-> **"기다림은 줄이고, 입맛은 맞추고, 잔반은 비우고!"**  
-> 대학생 맞춤형 스마트 학식 시스템 학슐랭(Hakchelin)은 사전 예약 및 맞춤형 옵션 선택을 통해 학식 운영의 효율성을 극대화하고, 학생들에게 편리하고 개인화된 식사 경험을 제공하는 프로젝트입니다.
+> 대학생의 학식 예약, 식권 관리, 포인트 결제, 운영 관리를 하나로 연결하는 스마트 학식 서비스
 
+학슐랭은 학식 메뉴를 날짜별로 확인하고, 예약부터 취소·식권 확인·포인트 결제까지 처리할 수 있는 웹 서비스입니다. 학생에게는 대기 시간을 줄인 식사 경험을, 운영자에게는 메뉴·예약 인원·노쇼를 관리할 수 있는 도구를 제공합니다.
 
-## ✨ 핵심 기능 (Key Features)
+현재 서비스 기능은 유지하면서, Supabase 중심 구조를 **Django API와 Neon PostgreSQL 기반의 분리형 모노레포**로 전환하고 있습니다.
 
-### 1. 스마트 사전 예약 및 차등 가격제
-* **혼합 운영 체제**: 전체 식수의 90%를 사전 예약제로 운영하여 예측 가능한 조리 환경을 조성하고, 10%의 현장 결제를 지원합니다.
-* **예약 유도 인센티브**: 사전 예약 활성화를 위해 현장 결제 시 추가 비용(500원~1,000원)이 책정됩니다.
-* **노쇼(No-Show) 방지**: 예약금 제도(1,000원)를 도입하여 미취식 시 예약금을 제외한 금액만 환불함으로써 대기 시 손실을 최소화합니다.
+## 주요 기능
 
-### 2. 사용자 맞춤형 식단 옵션
-* **수량 및 구성 커스텀**: 앱 내 주문 시 개인의 취향과 식사량에 맞춰 옵션을 선택할 수 있습니다. (예: 양 적게/많게, 고기 추가, 곱빼기 등)
-* **부분 자율배식 연동**: 메인 메뉴는 위생과 정량 관리를 위해 직접 배식받고, 사이드 반찬은 잔반 감소를 위해 자율 배식하는 시스템과 연동됩니다.
+- 날짜와 식사 시간별 학식 메뉴 조회 및 사전 예약
+- 예약 마감·정원·중복 예약을 서버에서 검증하는 식권 발급
+- 예약 취소 및 정책에 따른 환불 처리
+- 포인트 충전, 결제, 기부와 거래 이력 조회
+- 메뉴·사용자·식권·노쇼·포인트를 관리하는 관리자 화면
+- 한국어/영어 다국어 UI
+- 메뉴·내 식권·내 포인트를 읽기 전용으로 안내하는 Gemini 기반 AI 식사 도우미
 
-### 3. 글로벌 지원 (Global Support)
-* 외국인 학생들의 접근성과 편의성을 높이기 위해 **국문/영문 다국어 서비스**를 병행 지원합니다.
+## 화면
 
-## 🛠 기술 스택 (Tech Stack)
+### 메뉴 조회 및 예약
 
-본 프로젝트는 생산성이 높고 확장 가능한 모던 웹 기술 스택을 기반으로 구축되었습니다.
+<p align="center">
+  <img src="docs/images/menu-reservation.jpg" alt="날짜별 메뉴 조회와 예약 옵션을 제공하는 학슐랭 기본 화면" width="960" />
+</p>
 
-| 분류 | 기술 | 설명 |
-| :--- | :--- | :--- |
-| **Frontend** | <img src="https://img.shields.io/badge/Nuxt.js-00DC82?style=flat-square&logo=Nuxt.js&logoColor=white"/> | Vue 3 기반의 프레임워크로, SSR/SSG 지원 및 뛰어난 SEO와 UI 개발 생산성 제공 |
-| **Styling** | <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=Tailwind-CSS&logoColor=white"/> | 유틸리티 퍼스트 CSS 프레임워크를 활용하여 빠르고 일관된 반응형 UI 구현 |
-| **Backend / DB** | <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=Supabase&logoColor=white"/> | 오픈소스 Firebase 대안(BaaS)으로, PostgreSQL 기반 실시간 데이터 연동 및 인증(Auth) 해결 |
-| **Deployment** | <img src="https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=Vercel&logoColor=white"/> | Nuxt.js에 최적화된 글로벌 Edge 네트워크 기반의 서버리스 호스팅 및 자동 배포 |
+### 내 식권 및 포인트 내역
 
+<table>
+  <tr>
+    <td width="50%" align="center"><strong>식권 관리</strong></td>
+    <td width="50%" align="center"><strong>포인트 내역</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/tickets.jpg" alt="사용 완료, 노쇼, 취소 상태를 확인하는 내 식권 화면" /></td>
+    <td><img src="docs/images/point-history.jpg" alt="충전, 사용, 환불, 기부 내역을 확인하는 포인트 화면" /></td>
+  </tr>
+</table>
 
-## 🚀 향후 추진 및 해결 과제 (Roadmap)
+### 관리자 식단 관리
 
-- [ ] **학내 인프라 협의**
-  * 지하식당 개방 및 스마트 학식 전용 배식 라인 구축을 위한 학교 측 미팅 진행
-- [ ] **학사 시스템 연동 및 API 협의**
-  * 채플 지연 등 갑작스러운 학사 일정 변동 시 후속 수업 시간과 학식 예약 시간이 유연하게 연동될 수 있도록 학사 운영팀과 기술적·행정적 협의 추진
+<p align="center">
+  <img src="docs/images/admin-menu-management.jpg" alt="날짜별 식단을 등록하고 수정 및 삭제하는 관리자 화면" width="960" />
+</p>
 
-## 운영 규칙
+### 마이페이지 및 인증
 
-- 메뉴는 요일이 아닌 **식사 날짜와 시간**을 기준으로 등록하며, 메뉴별 예약 정원과 마감 시각을 설정합니다.
-- 같은 사용자는 같은 식사 시간에 한 번만 예약할 수 있으며, 정원·마감·포인트 검증은 DB 트랜잭션에서 수행됩니다.
-- 마감 전 취소는 전액 환불, 마감 후 취소와 노쇼는 예약금을 제외한 금액을 환불합니다.
-- 등록된 메뉴는 삭제하지 않고 비활성화하여 기존 예약과 결제 이력을 보존합니다.
-- 노쇼 정산은 Supabase `pg_cron` 작업이 15분마다 처리합니다. 배포 전 프로젝트에서 `pg_cron` 확장을 허용해야 합니다.
+<p align="center">
+  <img src="docs/images/profile.jpg" alt="사용자 정보와 이용 통계를 제공하는 마이페이지" width="960" />
+</p>
 
-## AI 식사 도우미 설정
+<table>
+  <tr>
+    <td width="50%" align="center"><strong>로그인</strong></td>
+    <td width="50%" align="center"><strong>회원가입</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/login.jpg" alt="학슐랭 로그인 화면" /></td>
+    <td><img src="docs/images/signup.jpg" alt="학슐랭 회원가입 화면" /></td>
+  </tr>
+</table>
 
-챗봇은 로그인 사용자의 메뉴·식권·포인트 조회만 지원하며, Supabase Edge Function에서 Gemini API를 호출합니다. 배포 후 Supabase 프로젝트 Secret에 Gemini 키를 설정해야 실제 응답이 활성화됩니다.
-응답 프롬프트와 가드레일은 관리자 화면에서 수정할 수 없으며, 개발자가 코드와 Supabase 마이그레이션으로만 변경·배포합니다.
+## 아키텍처
 
-```bash
-supabase secrets set GEMINI_API_KEY=your_gemini_api_key
+```mermaid
+flowchart TB
+  U["사용자 / 관리자"] --> W["Nuxt 4 웹 앱\nVercel"]
+  W -->|"HTTPS · REST API · SSE"| A
+
+  subgraph L["AWS Lightsail · Docker Compose"]
+    A["Caddy\nTLS · Reverse Proxy"] --> D["Django + DRF + Gunicorn\n도메인 API · 인증 · SSE 챗봇"]
+    D --> R["Redis\n캐시 · Celery 브로커"]
+    C["Celery Worker / Beat\n비동기·정기 작업"] --> R
+  end
+
+  D -->|"SSL · Pooler"| N["Neon PostgreSQL\n서비스 데이터"]
+  D --> G["Gemini API\nAI 식사 도우미"]
+  D --> T["Toss Payments\n포인트 결제"]
+  D --> E["Resend\n비밀번호 재설정 메일"]
+  D --> S["Amazon S3\n암호화된 DB 백업"]
 ```
 
-키는 브라우저나 Git 저장소에 보관하지 않습니다. 키를 설정하면 `chat` Edge Function을 다시 배포할 필요 없이 즉시 사용할 수 있습니다.
+## 기술 스택
 
----
+| 영역 | 기술 | 역할 |
+| --- | --- | --- |
+| Frontend | Nuxt 4, Vue 3, TypeScript | 반응형 사용자·관리자 웹 UI |
+| UI / i18n | Tailwind CSS, Nuxt i18n | 일관된 UI와 한국어·영어 지원 |
+| Backend | Python, Django, Django REST Framework | 도메인 규칙, REST API, 인증, 관리자 기능 |
+| API Contract | drf-spectacular, OpenAPI, openapi-fetch | API 명세 기반 타입 안전 클라이언트 |
+| Database | PostgreSQL on Neon | 관계형 서비스 데이터와 분리된 DB 운영 |
+| Background Jobs | Celery, Redis | 노쇼 정산, 이메일, 정기 작업 |
+| AI | Gemini Python SDK | 가드레일을 거친 읽기 전용 식사 도우미 |
+| Payments | Toss Payments | 포인트 충전 결제 승인 |
+| Infrastructure | Docker, Docker Compose, Caddy, AWS Lightsail | 컨테이너 배포, TLS, 리버스 프록시 |
+| CI/CD | GitHub Actions, Vercel | 테스트, 빌드, 프런트엔드 자동 배포 |
+| Backup / Email | Amazon S3, Resend | DB 백업과 비밀번호 재설정 메일 |
+
+## 목표 모노레포 구조
+
+```text
+apps/
+  web/                  # Nuxt 프런트엔드
+  api/                  # Django + DRF + Celery
+packages/
+  api-client/           # OpenAPI 기반 TypeScript 클라이언트
+infra/
+  lightsail/            # Docker Compose, Caddy, 배포 설정
+docs/
+  django-migration-plan.md
+```
+
+## 로컬 실행 — 현재 프런트엔드
+
+```bash
+pnpm install
+pnpm dev
+```
+
+현재 환경 변수는 로컬 `.env`에만 설정하고 저장소에 커밋하지 않습니다. Django 전환 후에는 `apps/api`의 별도 환경 변수 예시와 Docker Compose 실행 방법을 추가합니다.
