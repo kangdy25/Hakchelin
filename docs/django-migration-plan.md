@@ -34,9 +34,8 @@ Neon Free
 ## 2. 모노레포 구조
 
 ```text
-apps/
-  web/                 Nuxt 프런트엔드
-  api/                 Django + DRF + Celery
+frontend/               Nuxt 프런트엔드
+backend/                Django + DRF + Celery
 packages/
   api-client/          OpenAPI 기반 TypeScript 타입·클라이언트
 infra/
@@ -46,12 +45,12 @@ docs/
   django-migration-plan.md
 ```
 
-- `pnpm workspace`는 `apps/web`, `packages/api-client`를 관리한다.
-- Django는 `apps/api/pyproject.toml`과 `uv`로 의존성을 관리한다.
+- `pnpm workspace`는 `frontend`, `packages/api-client`를 관리한다.
+- Django는 `backend/pyproject.toml`과 `uv`로 의존성을 관리한다.
 - Django는 DRF와 `drf-spectacular`로 OpenAPI 스키마를 제공한다.
 - `packages/api-client`는 OpenAPI에서 TypeScript 타입과 `openapi-fetch` 클라이언트를 생성한다.
 - Nuxt는 생성된 API 클라이언트만 사용하며, `useSupabaseClient`, Supabase RPC, Edge Function 직접 호출을 제거한다.
-- Vercel의 Root Directory는 `apps/web`으로 설정한다.
+- Vercel의 Root Directory는 `frontend`로 설정한다.
 - GitHub Actions는 웹, API, API 계약 변경을 각각 검사한다. API 이미지는 CI에서 빌드하고 Lightsail은 이미지를 내려받아 배포한다.
 
 ## 3. Django API와 기능 이전
@@ -86,8 +85,8 @@ docs/
 
 ### 단계 1 — Django와 모노레포 기반 구축
 
-1. 현재 Nuxt 앱을 `apps/web`으로 이동하고 pnpm workspace를 구성한다.
-2. `apps/api`에 Django, DRF, Celery, Redis, OpenAPI 기반을 만든다.
+1. 현재 Nuxt 앱을 `frontend`로 이동하고 pnpm workspace를 구성한다.
+2. `backend`에 Django, DRF, Celery, Redis, OpenAPI 기반을 만든다.
 3. Docker Compose와 Caddy, health check, 로그 로테이션, 자동 재시작을 구성한다.
 4. GitHub Actions에서 웹·API 테스트와 이미지 배포 경로를 분리한다.
 

@@ -99,9 +99,8 @@ flowchart TB
 ## 목표 모노레포 구조
 
 ```text
-apps/
-  web/                  # Nuxt 프런트엔드
-  api/                  # Django + DRF + Celery
+frontend/                # Nuxt 프런트엔드
+backend/                 # Django + DRF + Celery
 packages/
   api-client/           # OpenAPI 기반 TypeScript 클라이언트
 infra/
@@ -110,11 +109,13 @@ docs/
   django-migration-plan.md
 ```
 
-## 로컬 실행 — 현재 프런트엔드
+## 로컬 실행
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev:web
 ```
 
-현재 환경 변수는 로컬 `.env`에만 설정하고 저장소에 커밋하지 않습니다. Django 전환 후에는 `apps/api`의 별도 환경 변수 예시와 Docker Compose 실행 방법을 추가합니다.
+프런트엔드는 `frontend/`, Django API는 `backend/`에 있습니다. Django는 `backend/.env.example`을 복사해 환경 변수를 설정한 뒤 `uv --directory backend run python manage.py runserver`로 실행합니다.
+
+현재 환경 변수는 로컬 `.env`에만 설정하고 저장소에 커밋하지 않습니다.
