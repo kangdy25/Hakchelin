@@ -34,7 +34,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       tossPaymentsClientKey: process.env.NUXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY || "",
-      supabaseUrl: process.env.SUPABASE_URL || ""
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      // 스테이징에서만 설정한다. 비어 있으면 기존 Supabase 어댑터가 유지된다.
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || ""
     }
   },
 
