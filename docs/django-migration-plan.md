@@ -1,7 +1,9 @@
 # 학슐랭 Django 전환: 프런트·백엔드 분리 모노레포
 
-> 상태: 구현 전 기획 문서
+> 상태: 1·2단계와 로컬 Django REST 컷오버 완료, Neon 데이터 이전·운영 전환 대기
 > 목표: 월 인프라 예산 2만 원 이하에서 Nuxt·Supabase 중심 구조를 Django·Neon 중심 구조로 단계 전환한다.
+
+실제 구현 결과와 검증 기록은 [Django 마이그레이션 구현 일지](./django-migration-implementation-journal.md), 문제 해결 과정은 [트러블슈팅 일지](./troubleshooting/django-migration.md)를 참고한다.
 
 ## 1. 목표 아키텍처
 
@@ -67,7 +69,8 @@ docs/
 
 ### 공개 API 계약
 
-- 인증: 로그인, 로그아웃, 토큰 갱신, 비밀번호 재설정, 현재 사용자 조회
+- 현재 인증: Django 세션 기반 회원가입, 로그인, 로그아웃, 현재 사용자 조회
+- 운영 인증 후속: 기존 사용자 비밀번호 재설정과 운영 쿠키 정책 확정. access/refresh 토큰을 선택할 경우에만 토큰 갱신 API 추가
 - 사용자: 메뉴, 내 예약·식권·포인트·거래 이력 조회
 - 변경: 예약, 예약 취소, 포인트 주문 생성, Toss 결제 승인, 포인트 기부
 - 관리자: 메뉴, 사용자, 식권, 포인트, AI 로그 관리
@@ -106,13 +109,22 @@ docs/
 5. 전환 시간에는 쓰기 요청을 중지하고, 데이터 수량·UUID·포인트 합계·예약·거래·인덱스·제약 조건을 대조한다.
 6. 검증이 끝나면 Django의 DB 연결을 Neon으로 교체한다. 이후에는 이중 기록을 하지 않는다.
 
-### 단계 4 — Django 인증과 Supabase 제거
+### 단계 4 — 운영 인증 전환과 Supabase 서비스 종료
+
+로컬에서 완료한 범위:
+
+1. Django 세션 기반 회원가입·로그인·로그아웃·현재 사용자 API를 활성화했다.
+2. Nuxt는 `credentials: include`와 CSRF 헤더로 Django API를 호출한다.
+3. 프런트엔드 Supabase SDK, 직접 조회, RPC, Edge Function 런타임 의존성을 제거했다.
+4. Edge Function의 Toss 승인과 `pg_cron`의 노쇼 처리를 Django·Celery로 이전했다.
+
+운영 컷오버에서 남은 범위:
 
 1. 기존 사용자에게 Resend 비밀번호 재설정 링크를 발송한다.
-2. Django 로그인, 로그아웃, 토큰 갱신, 현재 사용자 API를 활성화한다.
-3. Access/refresh 토큰은 Secure·HttpOnly 쿠키로만 전달한다.
-4. Nuxt는 `credentials: include`로 호출하고, CORS·CSRF·`SameSite=None; Secure` 정책을 적용한다.
-5. 안정화와 백업 검증 후 Supabase Auth, RLS, RPC, Edge Function, pg_cron 및 프런트엔드 SDK 의존성을 제거한다.
+2. 세션 인증을 유지할지 access/refresh 토큰 방식으로 전환할지 운영 도메인 구조에 맞춰 확정한다.
+3. 토큰 방식을 선택하면 Secure·HttpOnly access/refresh 쿠키와 토큰 갱신 API를 구현한다.
+4. 운영 도메인에서 CORS·CSRF·Secure·SameSite 쿠키 정책을 검증한다.
+5. Neon ETL, 안정화와 백업 복원 검증 후 Supabase Auth, RLS와 서비스 리소스를 종료한다.
 
 ## 5. 운영과 검증
 

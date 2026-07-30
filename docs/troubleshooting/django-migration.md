@@ -2,6 +2,8 @@
 
 학슐랭의 Nuxt·Supabase 구조를 Django·Neon 구조로 전환하며 발견한 문제와 해결 과정을 기록한다. 각 항목은 포트폴리오에서 설계 판단과 검증 방법을 설명하기 위한 근거다.
 
+단계별 구현 범위, API 구조와 검증 결과는 [Django 마이그레이션 구현 일지](../django-migration-implementation-journal.md)에 정리했다.
+
 ## 1단계 — 모노레포 전환 뒤 Vercel 빌드 실패
 
 ### 증상

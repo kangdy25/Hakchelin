@@ -107,6 +107,8 @@ infra/
   lightsail/            # Docker Compose, Caddy, 배포 설정
 docs/
   django-migration-plan.md
+  django-migration-implementation-journal.md
+  troubleshooting/django-migration.md
 ```
 
 ## 로컬 실행
