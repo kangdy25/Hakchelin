@@ -8,4 +8,19 @@ export const createApiClient = (baseUrl: string) =>
     credentials: "include"
   });
 
-export type { paths } from "./schema";
+export const createChatStream = (
+  baseUrl: string,
+  body: { message: string; conversation_id: string },
+  csrfToken: string
+) =>
+  fetch(`${baseUrl}/api/v1/chat/stream/`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken
+    },
+    body: JSON.stringify(body)
+  });
+
+export type { components, paths } from "./schema";

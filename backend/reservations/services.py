@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
@@ -14,7 +17,7 @@ class ReservationError(ValueError):
 @transaction.atomic
 def reserve_menu(*, user, menu_id: str, options: dict, submitted_total: int) -> Reservation:
     menu = Menu.objects.select_for_update().get(id=menu_id, is_active=True)
-    user = type(user).objects.select_for_update().get(id=user.id)
+    user = get_user_model().objects.select_for_update().get(id=user.id)
     now = timezone.now()
     main_count = int(options.get("main", 0))
     rice_amount = int(options.get("rice", 0))
@@ -53,7 +56,7 @@ def reserve_menu(*, user, menu_id: str, options: dict, submitted_total: int) -> 
 @transaction.atomic
 def cancel_reservation(*, user, reservation_id) -> Reservation:
     reservation = Reservation.objects.select_for_update().select_related("menu").get(id=reservation_id, user=user)
-    user = type(user).objects.select_for_update().get(id=user.id)
+    user = get_user_model().objects.select_for_update().get(id=user.id)
     if reservation.status != Reservation.Status.RESERVED:
         raise ReservationError("취소할 수 있는 예약이 아닙니다.")
     refund = reservation.total_price if timezone.now() < reservation.menu.reservation_deadline else max(
@@ -67,3 +70,70 @@ def cancel_reservation(*, user, reservation_id) -> Reservation:
     user.save(update_fields=["current_point"])
     PointTransaction.objects.create(user=user, amount=refund, type=PointTransaction.Type.REFUND, description="예약 취소 환불")
     return reservation
+
+
+@transaction.atomic
+def use_reservation(*, reservation_id) -> Reservation:
+    reservation = Reservation.objects.select_for_update().get(id=reservation_id)
+    if reservation.status != Reservation.Status.RESERVED:
+        raise ReservationError("사용 처리할 수 있는 예약이 아닙니다.")
+    reservation.status = Reservation.Status.USED
+    reservation.used_at = timezone.now()
+    reservation.save(update_fields=["status", "used_at"])
+    return reservation
+
+
+@transaction.atomic
+def admin_cancel_reservation(*, reservation_id) -> Reservation:
+    reservation = Reservation.objects.select_for_update().get(id=reservation_id)
+    user = get_user_model().objects.select_for_update().get(id=reservation.user_id)
+    if reservation.status != Reservation.Status.RESERVED:
+        raise ReservationError("취소 처리할 수 있는 예약이 아닙니다.")
+    reservation.status = Reservation.Status.CANCELLED
+    reservation.cancelled_at = timezone.now()
+    reservation.refunded_amount = reservation.total_price
+    reservation.save(update_fields=["status", "cancelled_at", "refunded_amount"])
+    user.current_point += reservation.total_price
+    user.save(update_fields=["current_point"])
+    PointTransaction.objects.create(
+        user=user,
+        amount=reservation.total_price,
+        type=PointTransaction.Type.REFUND,
+        description="관리자 예약 취소 환불",
+    )
+    return reservation
+
+
+@transaction.atomic
+def process_no_shows(*, now=None) -> int:
+    now = now or timezone.now()
+    reservations = (
+        Reservation.objects.select_for_update()
+        .select_related("user")
+        .filter(status=Reservation.Status.RESERVED, meal_date__lte=timezone.localdate(now))
+    )
+    processed = 0
+    for reservation in reservations:
+        meal_ended_at = timezone.make_aware(
+            datetime.combine(reservation.meal_date, reservation.meal_time),
+            timezone.get_current_timezone(),
+        ) + timedelta(hours=1)
+        if meal_ended_at > now:
+            continue
+
+        refund = max(reservation.total_price - reservation.deposit_amount, 0)
+        user = get_user_model().objects.select_for_update().get(id=reservation.user_id)
+        reservation.status = Reservation.Status.NO_SHOW
+        reservation.cancelled_at = now
+        reservation.refunded_amount = refund
+        reservation.save(update_fields=["status", "cancelled_at", "refunded_amount"])
+        user.current_point += refund
+        user.save(update_fields=["current_point"])
+        PointTransaction.objects.create(
+            user=user,
+            amount=refund,
+            type=PointTransaction.Type.REFUND,
+            description="노쇼 처리 (예약금 제외 환불)",
+        )
+        processed += 1
+    return processed

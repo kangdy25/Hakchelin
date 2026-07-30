@@ -6,7 +6,8 @@ from django.utils import timezone
 from accounts.models import User
 from meals.models import Menu
 from payments.services import confirm_paid_order, create_point_order
-from reservations.services import cancel_reservation, reserve_menu
+from reservations.models import Reservation
+from reservations.services import cancel_reservation, process_no_shows, reserve_menu
 from wallet.models import PointTransaction
 
 
@@ -27,8 +28,56 @@ def test_reservation_and_cancellation_update_points_and_ledger():
 def test_payment_confirmation_is_idempotent():
     user = User.objects.create_user("student@example.com", "password", student_id="20260001", name="학생")
     order = create_point_order(user=user, amount=5000)
-    confirm_paid_order(order_id=order.order_id, payment_key="payment-key", approved_amount=5000, toss_response={})
-    confirm_paid_order(order_id=order.order_id, payment_key="payment-key", approved_amount=5000, toss_response={})
+    confirm_paid_order(
+        user=user,
+        order_id=order.order_id,
+        payment_key="payment-key",
+        approved_amount=5000,
+        toss_response={},
+    )
+    confirm_paid_order(
+        user=user,
+        order_id=order.order_id,
+        payment_key="payment-key",
+        approved_amount=5000,
+        toss_response={},
+    )
     user.refresh_from_db()
     assert user.current_point == 5000
     assert PointTransaction.objects.filter(type="charge").count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_no_show_refunds_price_but_keeps_deposit():
+    user = User.objects.create_user(
+        "student@example.com",
+        "password",
+        student_id="20260001",
+        name="학생",
+    )
+    yesterday = timezone.localdate() - timedelta(days=1)
+    menu = Menu.objects.create(
+        title_ko="메뉴",
+        title_en="Meal",
+        type="kr",
+        meal_date=yesterday,
+        meal_time="12:00",
+        reservation_deadline=timezone.now() - timedelta(days=2),
+    )
+    reservation = Reservation.objects.create(
+        user=user,
+        menu=menu,
+        options={},
+        total_price=5500,
+        meal_date=yesterday,
+        meal_time="12:00",
+        deposit_amount=1000,
+        menu_snapshot={},
+    )
+
+    assert process_no_shows() == 1
+    reservation.refresh_from_db()
+    user.refresh_from_db()
+    assert reservation.status == Reservation.Status.NO_SHOW
+    assert reservation.refunded_amount == 4500
+    assert user.current_point == 4500

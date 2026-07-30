@@ -25,7 +25,7 @@ const selectedMenus = computed(() => dbMenus.value.filter((menu) => menu.meal_da
 
 const displayMealDate = (date: string) => formatMealDate(date, locale.value);
 
-// Supabase 메뉴 불러오기
+// Django API에서 활성 메뉴 불러오기
 const fetchMenus = async () => {
   try {
     const data = await api.menus.get({ activeOnly: true, fromDate: today });

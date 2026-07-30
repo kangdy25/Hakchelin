@@ -4,7 +4,7 @@
 
 학슐랭은 학식 메뉴를 날짜별로 확인하고, 예약부터 취소·식권 확인·포인트 결제까지 처리할 수 있는 웹 서비스입니다. 학생에게는 대기 시간을 줄인 식사 경험을, 운영자에게는 메뉴·예약 인원·노쇼를 관리할 수 있는 도구를 제공합니다.
 
-현재 서비스 기능은 유지하면서, Supabase 중심 구조를 **Django API와 Neon PostgreSQL 기반의 분리형 모노레포**로 전환하고 있습니다.
+로컬 런타임은 Supabase 직접 호출을 제거하고 **Django API 기반의 분리형 모노레포**로 전환했습니다. 운영 데이터의 Neon 이관과 인프라 컷오버는 다음 단계에서 진행합니다.
 
 ## 주요 기능
 
@@ -90,7 +90,7 @@ flowchart TB
 | API Contract | drf-spectacular, OpenAPI, openapi-fetch | API 명세 기반 타입 안전 클라이언트 |
 | Database | PostgreSQL on Neon | 관계형 서비스 데이터와 분리된 DB 운영 |
 | Background Jobs | Celery, Redis | 노쇼 정산, 이메일, 정기 작업 |
-| AI | Gemini Python SDK | 가드레일을 거친 읽기 전용 식사 도우미 |
+| AI | Gemini API | 사용자별 데이터로 제한된 읽기 전용 식사 도우미 |
 | Payments | Toss Payments | 포인트 충전 결제 승인 |
 | Infrastructure | Docker, Docker Compose, Caddy, AWS Lightsail | 컨테이너 배포, TLS, 리버스 프록시 |
 | CI/CD | GitHub Actions, Vercel | 테스트, 빌드, 프런트엔드 자동 배포 |
@@ -113,9 +113,18 @@ docs/
 
 ```bash
 pnpm install
+cp backend/.env.example backend/.env
+uv --directory backend sync --all-groups
+uv --directory backend run python manage.py migrate
+uv --directory backend run python manage.py runserver
+```
+
+다른 터미널에서 프런트엔드를 실행합니다.
+
+```bash
 pnpm dev:web
 ```
 
-프런트엔드는 `frontend/`, Django API는 `backend/`에 있습니다. Django는 `backend/.env.example`을 복사해 환경 변수를 설정한 뒤 `uv --directory backend run python manage.py runserver`로 실행합니다.
+Nuxt는 기본적으로 `http://localhost:8000`의 Django API에 연결합니다. 다른 주소를 사용할 때는 `NUXT_PUBLIC_API_BASE_URL`을 설정합니다. SQLite는 `DATABASE_URL`을 비워 두면 사용하며, 실제 결제·AI 응답에는 각각 `TOSS_PAYMENTS_SECRET_KEY`, `GEMINI_API_KEY`가 필요합니다.
 
 현재 환경 변수는 로컬 `.env`에만 설정하고 저장소에 커밋하지 않습니다.

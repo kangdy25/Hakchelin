@@ -34,20 +34,13 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       tossPaymentsClientKey: process.env.NUXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY || "",
-      supabaseUrl: process.env.SUPABASE_URL || "",
-      // 스테이징에서만 설정한다. 비어 있으면 기존 Supabase 어댑터가 유지된다.
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || ""
+      apiBaseUrl:
+        process.env.NUXT_PUBLIC_API_BASE_URL ||
+        (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "")
     }
   },
 
-  modules: ["@nuxtjs/tailwindcss", "@nuxtjs/supabase", "@nuxtjs/i18n"],
-
-  supabase: {
-    redirect: false,
-    // DB 생성 타입은 레거시 Supabase 어댑터에서만 사용한다.
-    // 화면은 types/api.ts의 API 계약에만 의존한다.
-    types: "~/types/supabase.ts"
-  },
+  modules: ["@nuxtjs/tailwindcss", "@nuxtjs/i18n"],
 
   i18n: {
     // langDir을 프로젝트 루트 기준으로 해석해 locales/만 단일 원본으로 사용한다.
