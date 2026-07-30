@@ -6,8 +6,18 @@ import { createApiClient } from "@hakchelin/api-client";
  */
 export const useDjangoApi = () => {
   const { public: config } = useRuntimeConfig();
+  const supabase = useSupabaseClient();
   const enabled = computed(() => Boolean(config.apiBaseUrl));
-  const client = computed(() => createApiClient(config.apiBaseUrl));
+  const getClient = async () => {
+    const client = createApiClient(config.apiBaseUrl);
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token)
+      client.use({ onRequest: ({ request }) => {
+        request.headers.set("Authorization", `Bearer ${data.session?.access_token}`);
+        return request;
+      } });
+    return client;
+  };
 
-  return { enabled, client };
+  return { enabled, getClient };
 };
