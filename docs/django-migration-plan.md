@@ -1,7 +1,9 @@
 # 학슐랭 Django 전환: 프런트·백엔드 분리 모노레포
 
-> 상태: 구현 전 기획 문서
+> 상태: 1·2단계와 로컬 Django REST 컷오버 완료, Neon 데이터 이전·운영 전환 대기
 > 목표: 월 인프라 예산 2만 원 이하에서 Nuxt·Supabase 중심 구조를 Django·Neon 중심 구조로 단계 전환한다.
+
+실제 구현 결과와 검증 기록은 [Django 마이그레이션 구현 일지](./django-migration-implementation-journal.md), 문제 해결 과정은 [트러블슈팅 일지](./troubleshooting/django-migration.md)를 참고한다.
 
 ## 1. 목표 아키텍처
 
