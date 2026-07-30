@@ -4,6 +4,214 @@
  */
 
 export interface paths {
+    "/api/v1/admin/ai-logs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_admin_ai_logs_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reservations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_admin_reservations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reservations/{reservation_id}/{action}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_admin_reservations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/transactions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_admin_transactions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_admin_users_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/points/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_admin_users_points_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/role/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_admin_users_role_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/csrf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_auth_csrf_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_auth_login_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_auth_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/signup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_auth_signup_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/{conversation_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_chat_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/stream/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_chat_stream_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/": {
         parameters: {
             query?: never;
@@ -29,7 +237,87 @@ export interface paths {
         };
         get: operations["v1_menus_list"];
         put?: never;
+        post: operations["v1_menus_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/menus/{menu_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         post?: never;
+        delete: operations["v1_menus_destroy"];
+        options?: never;
+        head?: never;
+        patch: operations["v1_menus_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/payments/point-orders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_payments_point_orders_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/point-orders/confirm/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_payments_point_orders_confirm_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_reservations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reservations/{reservation_id}/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_reservations_cancel_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -46,6 +334,22 @@ export interface paths {
         get: operations["v1_reservations_me_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/donations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_wallet_donations_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -72,97 +376,229 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminPoint: {
+            amount: number;
+            description: string;
+        };
+        AdminRole: {
+            role: components["schemas"]["UserRoleEnum"];
+        };
+        AiLog: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly stage: components["schemas"]["StageEnum"];
+            readonly model: string | null;
+            readonly latency_ms: number;
+            readonly status_code: number;
+            readonly error_message: string;
+            readonly users: components["schemas"]["UserSummary"] | null;
+        };
+        Amount: {
+            amount: number;
+        };
+        ChatMessage: {
+            readonly role: components["schemas"]["ChatRoleEnum"];
+            readonly content: string;
+        };
+        ChatRequest: {
+            message: string;
+            /** Format: uuid */
+            conversation_id: string;
+        };
+        /**
+         * @description * `user` - User
+         *     * `assistant` - Assistant
+         * @enum {string}
+         */
+        ChatRoleEnum: "user" | "assistant";
+        CsrfReady: {
+            csrf: string;
+        };
+        Login: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
         Menu: {
-            id: string;
-            day_of_week: string;
+            readonly id: string;
+            day_of_week?: string;
             type: components["schemas"]["MenuTypeEnum"];
             title_ko: string;
             title_en: string;
-            price: number;
+            /** Format: int64 */
+            price?: number;
             /** Format: date */
             meal_date: string;
             /** Format: time */
-            meal_time: string;
-            capacity: number;
+            meal_time?: string;
+            /** Format: int64 */
+            capacity?: number;
             /** Format: date-time */
             reservation_deadline: string;
-            deposit_amount: number;
-            is_active: boolean;
+            /** Format: int64 */
+            deposit_amount?: number;
+            is_active?: boolean;
             /** Format: date-time */
-            created_at: string;
+            readonly created_at: string;
+        };
+        MenuSummary: {
+            title_ko: string;
+            title_en: string;
+            price: number;
+            type: string;
+            day_of_week: string;
         };
         /**
-         * @description * `kr` - kr
-         *     * `premium` - premium
-         *     * `takeout` - takeout
+         * @description * `kr` - Korean
+         *     * `premium` - Premium
+         *     * `takeout` - Takeout
          * @enum {string}
          */
         MenuTypeEnum: "kr" | "premium" | "takeout";
-        PointTransaction: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            user_id: string;
-            amount: number;
-            type: components["schemas"]["PointTransactionTypeEnum"];
-            description: string | null;
-            /** Format: date-time */
-            created_at: string;
-        };
-        /**
-         * @description * `charge` - charge
-         *     * `deduct` - deduct
-         *     * `refund` - refund
-         * @enum {string}
-         */
-        PointTransactionTypeEnum: "charge" | "deduct" | "refund";
-        Profile: {
-            /** Format: uuid */
-            id: string;
-            role: components["schemas"]["RoleEnum"];
-            student_id: string;
-            name: string;
-            current_point: number;
-            /** Format: date-time */
-            created_at: string;
-        };
-        Reservation: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            user_id: string;
-            menu_id: string;
-            options: unknown;
-            total_price: number;
-            status: components["schemas"]["StatusEnum"];
+        MenuWrite: {
+            day_of_week?: string;
+            type: components["schemas"]["MenuTypeEnum"];
+            title_ko: string;
+            title_en: string;
+            /** Format: int64 */
+            price?: number;
             /** Format: date */
             meal_date: string;
             /** Format: time */
-            meal_time: string;
-            menu_snapshot: unknown;
-            deposit_amount: number;
-            refunded_amount: number;
+            meal_time?: string;
+            /** Format: int64 */
+            capacity?: number;
             /** Format: date-time */
-            created_at: string;
+            reservation_deadline: string;
+            /** Format: int64 */
+            deposit_amount?: number;
+            is_active?: boolean;
+        };
+        PatchedMenuWrite: {
+            day_of_week?: string;
+            type?: components["schemas"]["MenuTypeEnum"];
+            title_ko?: string;
+            title_en?: string;
+            /** Format: int64 */
+            price?: number;
+            /** Format: date */
+            meal_date?: string;
+            /** Format: time */
+            meal_time?: string;
+            /** Format: int64 */
+            capacity?: number;
             /** Format: date-time */
-            cancelled_at: string | null;
+            reservation_deadline?: string;
+            /** Format: int64 */
+            deposit_amount?: number;
+            is_active?: boolean;
+        };
+        PointOrder: {
+            order_id: string;
+            amount: number;
+            point_amount: number;
+        };
+        PointPaymentConfirm: {
+            payment_key: string;
+            order_id: string;
+            amount: number;
+        };
+        PointPaymentResult: {
+            order_id: string;
+            status: string;
+            point_amount: number;
+        };
+        PointTransaction: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly user_id: string;
+            readonly amount: number;
+            readonly type: components["schemas"]["TransactionTypeEnum"];
+            readonly description: string;
             /** Format: date-time */
-            used_at: string | null;
+            readonly created_at: string;
+            readonly users: components["schemas"]["UserSummary"];
+        };
+        Reservation: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly user_id: string;
+            readonly menu_id: string;
+            readonly options: unknown;
+            readonly total_price: number;
+            readonly status: components["schemas"]["StatusEnum"];
+            /** Format: date */
+            readonly meal_date: string;
+            /** Format: time */
+            readonly meal_time: string;
+            readonly deposit_amount: number;
+            readonly refunded_amount: number;
+            readonly menu_snapshot: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly users: components["schemas"]["UserSummary"];
+            readonly menus: components["schemas"]["MenuSummary"];
+        };
+        ReservationCreate: {
+            menu_id: string;
+            options?: unknown;
+            total_price: number;
+        };
+        Signup: {
+            /** Format: email */
+            email: string;
+            password: string;
+            name: string;
+            student_id: string;
         };
         /**
-         * @description * `student` - student
-         *     * `admin` - admin
+         * @description * `validation` - Validation
+         *     * `guardrail` - Guardrail
+         *     * `main_chat` - Main chat
          * @enum {string}
          */
-        RoleEnum: "student" | "admin";
+        StageEnum: "validation" | "guardrail" | "main_chat";
         /**
-         * @description * `reserved` - reserved
-         *     * `used` - used
-         *     * `cancelled` - cancelled
-         *     * `no_show` - no_show
+         * @description * `reserved` - Reserved
+         *     * `used` - Used
+         *     * `cancelled` - Cancelled
+         *     * `no_show` - No show
          * @enum {string}
          */
         StatusEnum: "reserved" | "used" | "cancelled" | "no_show";
+        /**
+         * @description * `charge` - Charge
+         *     * `deduct` - Deduct
+         *     * `refund` - Refund
+         * @enum {string}
+         */
+        TransactionTypeEnum: "charge" | "deduct" | "refund";
+        User: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: email */
+            readonly email: string;
+            readonly role: components["schemas"]["UserRoleEnum"];
+            readonly student_id: string;
+            readonly name: string;
+            readonly current_point: number;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        /**
+         * @description * `student` - Student
+         *     * `admin` - Admin
+         * @enum {string}
+         */
+        UserRoleEnum: "student" | "admin";
+        UserSummary: {
+            name: string;
+            student_id: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -172,6 +608,291 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_admin_ai_logs_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiLog"][];
+                };
+            };
+        };
+    };
+    v1_admin_reservations_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reservation"][];
+                };
+            };
+        };
+    };
+    v1_admin_reservations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action: string;
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reservation"];
+                };
+            };
+        };
+    };
+    v1_admin_transactions_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointTransaction"][];
+                };
+            };
+        };
+    };
+    v1_admin_users_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][];
+                };
+            };
+        };
+    };
+    v1_admin_users_points_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPoint"];
+                "application/x-www-form-urlencoded": components["schemas"]["AdminPoint"];
+                "multipart/form-data": components["schemas"]["AdminPoint"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_admin_users_role_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRole"];
+                "application/x-www-form-urlencoded": components["schemas"]["AdminRole"];
+                "multipart/form-data": components["schemas"]["AdminRole"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_auth_csrf_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsrfReady"];
+                };
+            };
+        };
+    };
+    v1_auth_login_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Login"];
+                "application/x-www-form-urlencoded": components["schemas"]["Login"];
+                "multipart/form-data": components["schemas"]["Login"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_auth_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_auth_signup_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Signup"];
+                "application/x-www-form-urlencoded": components["schemas"]["Signup"];
+                "multipart/form-data": components["schemas"]["Signup"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_chat_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessage"][];
+                };
+            };
+        };
+    };
+    v1_chat_stream_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ChatRequest"];
+                "multipart/form-data": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
     v1_me_retrieve: {
         parameters: {
             query?: never;
@@ -186,7 +907,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Profile"];
+                    "application/json": components["schemas"]["User"];
                 };
             };
         };
@@ -213,6 +934,174 @@ export interface operations {
             };
         };
     };
+    v1_menus_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["MenuWrite"];
+                "multipart/form-data": components["schemas"]["MenuWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Menu"];
+                };
+            };
+        };
+    };
+    v1_menus_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                menu_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_menus_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                menu_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMenuWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMenuWrite"];
+                "multipart/form-data": components["schemas"]["PatchedMenuWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Menu"];
+                };
+            };
+        };
+    };
+    v1_payments_point_orders_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Amount"];
+                "application/x-www-form-urlencoded": components["schemas"]["Amount"];
+                "multipart/form-data": components["schemas"]["Amount"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointOrder"];
+                };
+            };
+        };
+    };
+    v1_payments_point_orders_confirm_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PointPaymentConfirm"];
+                "application/x-www-form-urlencoded": components["schemas"]["PointPaymentConfirm"];
+                "multipart/form-data": components["schemas"]["PointPaymentConfirm"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointPaymentResult"];
+                };
+            };
+        };
+    };
+    v1_reservations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReservationCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReservationCreate"];
+                "multipart/form-data": components["schemas"]["ReservationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reservation"];
+                };
+            };
+        };
+    };
+    v1_reservations_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reservation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reservation"];
+                };
+            };
+        };
+    };
     v1_reservations_me_list: {
         parameters: {
             query?: never;
@@ -228,6 +1117,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Reservation"][];
+                };
+            };
+        };
+    };
+    v1_wallet_donations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Amount"];
+                "application/x-www-form-urlencoded": components["schemas"]["Amount"];
+                "multipart/form-data": components["schemas"]["Amount"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PointTransaction"];
                 };
             };
         };

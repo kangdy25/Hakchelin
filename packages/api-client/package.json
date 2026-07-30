@@ -5,7 +5,7 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
-    "generate": "openapi-typescript http://localhost:8000/api/schema/ -o src/schema.d.ts",
+    "generate": "uv --directory ../../backend run python manage.py spectacular --file /tmp/hakchelin-openapi.yaml --validate && openapi-typescript /tmp/hakchelin-openapi.yaml -o src/schema.d.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

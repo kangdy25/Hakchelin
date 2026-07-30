@@ -1,9 +1,12 @@
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
@@ -25,7 +28,6 @@ INSTALLED_APPS = [
     "wallet",
     "payments",
     "chatbot",
-    "legacy_bridge.apps.LegacyBridgeConfig",
 ]
 
 MIDDLEWARE = [
@@ -53,9 +55,13 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+database_url = os.getenv("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+if "pytest" in sys.modules or any("pytest" in argument for argument in sys.argv):
+    database_url = "sqlite:///:memory:"
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    "default": dj_database_url.parse(
+        database_url,
         conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", "0")),
     )
 }
@@ -75,27 +81,63 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
-REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+}
 
-SUPABASE_JWT_ISSUER = os.getenv("SUPABASE_JWT_ISSUER", "")
-SUPABASE_JWT_AUDIENCE = os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated")
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
-SUPABASE_JWT_JWKS_URL = os.getenv("SUPABASE_JWT_JWKS_URL", "")
 SPECTACULAR_SETTINGS = {
     "TITLE": "Hakchelin API",
     "DESCRIPTION": "Hakchelin Django API contract",
     "VERSION": "v1",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "UserRoleEnum": [("student", "Student"), ("admin", "Admin")],
+        "ChatRoleEnum": [("user", "User"), ("assistant", "Assistant")],
+        "MenuTypeEnum": [("kr", "Korean"), ("premium", "Premium"), ("takeout", "Takeout")],
+        "TransactionTypeEnum": [("charge", "Charge"), ("deduct", "Deduct"), ("refund", "Refund")],
+    },
 }
 
-CORS_ALLOWED_ORIGINS = [origin for origin in os.getenv("DJANGO_CORS_ALLOWED_ORIGINS", "").split(",") if origin]
+CORS_ALLOWED_ORIGINS = [
+    origin
+    for origin in os.getenv(
+        "DJANGO_CORS_ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin
+]
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = [origin for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if origin]
+CSRF_TRUSTED_ORIGINS = [
+    origin
+    for origin in os.getenv(
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin
+]
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
 CELERY_TASK_TRACK_STARTED = True
 CELERY_BEAT_SCHEDULER = "celery.beat:PersistentScheduler"
+CELERY_BEAT_SCHEDULE = {
+    "process-reservation-no-shows": {
+        "task": "reservations.tasks.process_no_shows",
+        "schedule": 900,
+    },
+    "delete-expired-chat-messages": {
+        "task": "chatbot.tasks.delete_expired_chat_messages",
+        "schedule": 3600,
+    },
+}
+TOSS_PAYMENTS_SECRET_KEY = os.getenv("TOSS_PAYMENTS_SECRET_KEY", "")
+TOSS_PAYMENTS_CONFIRM_URL = os.getenv(
+    "TOSS_PAYMENTS_CONFIRM_URL",
+    "https://api.tosspayments.com/v1/payments/confirm",
+)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 if not DEBUG:
     SESSION_COOKIE_SECURE = True

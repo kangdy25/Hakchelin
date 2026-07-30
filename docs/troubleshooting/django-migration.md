@@ -74,12 +74,108 @@ Vercel 프로젝트 설정의 Root Directory를 `frontend`로 변경했다. 이�
 
 결제와 예약 같은 상태 변경은 HTTP 요청 단위가 아니라 도메인 트랜잭션 단위로 설계해야 한다. 서비스 계층은 이후 DRF API, Celery 작업, 관리자 명령이 같은 규칙을 재사용하게 해 준다.
 
-## 현재 연동 상태 — API 준비와 화면 전환은 별개
-
-2단계에서 Django 읽기 API와 OpenAPI TypeScript 클라이언트는 생성했지만, 기존 Nuxt 화면은 아직 `useApi`의 Supabase 구현을 사용한다. `useDjangoApi`는 스테이징 전환을 위한 준비물이며 현재 화면에서 호출되지 않는다.
-
-이 분리는 의도적이다. API 계약과 인증을 먼저 검증한 뒤 화면을 한 흐름씩 전환하면, 데이터 계층 이동과 UI 회귀를 분리해 진단할 수 있다. 다음 단계에서는 메뉴·프로필·예약·거래 이력 화면을 생성 클라이언트로 전환하고, 로컬 Docker Compose 환경에서 브라우저 단위로 확인한다.
-
 ## 읽기 연동 — 생성 계약과 기존 UI 타입의 경계
 
 OpenAPI의 JSON 필드는 TypeScript에서 `unknown`으로 생성되지만 기존 UI의 메뉴 옵션은 더 구체적인 타입을 사용했다. 생성 API 응답은 경계에서 명시적으로 변환하고, 화면 내부 타입은 기존 계약을 유지해 생성 코드의 느슨한 타입이 UI 전체로 퍼지지 않게 했다.
+
+## 쓰기 연동 — 전환기 테스트가 최종 구조를 방해한 문제
+
+### 증상
+
+Supabase JWT 브리지 URL을 최종 Django ORM view로 교체하자 기존 `test_legacy_bridge.py`가 모두 실패했다. 테스트는 새 API의 동작이 아니라 legacy repository mock 호출을 검증하고 있었다.
+
+### 원인
+
+전환기의 안전망이었던 테스트가 구현 상세에 결합되어 최종 아키텍처를 고정하는 제약으로 바뀌었다. 같은 URL에서 브리지와 최종 ORM API를 동시에 유지하면 인증 방식과 응답 계약도 이중화된다.
+
+### 해결
+
+legacy app과 JWT 설정을 제거하고, 테스트를 세션 로그인·CSRF·사용자별 예약 격리·관리자 권한·결제 멱등성·SSE 이벤트 계약을 검증하는 HTTP 통합 테스트로 교체했다.
+
+### 배운 점
+
+마이그레이션 테스트는 단계별 수명이 있다. 임시 어댑터의 테스트를 영구 계약으로 취급하지 말고, 컷오버 시점에는 사용자가 실제로 의존하는 HTTP 계약 중심으로 다시 작성해야 한다.
+
+## OpenAPI — APIView의 암묵적 스키마가 생성 클라이언트를 깨뜨린 문제
+
+### 증상
+
+DRF `APIView`만으로 엔드포인트를 추가했을 때 drf-spectacular가 요청·응답 serializer를 추론하지 못했고, 메뉴 생성 요청에 읽기 전용 `id`, `created_at`까지 필요하다는 TypeScript 타입이 생성됐다.
+
+### 원인
+
+런타임에서는 자유로운 `request.data`가 동작하지만 OpenAPI 생성기는 그 구조를 알 수 없다. 읽기 serializer를 쓰기 요청에도 재사용하면 read-only 필드와 required 필드의 의미가 섞인다.
+
+### 해결
+
+각 API에 `extend_schema`와 명시적 serializer를 연결하고 `MenuSerializer`와 `MenuWriteSerializer`를 분리했다. OpenAPI는 실행 중인 서버를 호출하지 않고 Django management command로 생성하도록 바꿔 CI 재현성도 높였다.
+
+### 배운 점
+
+생성 클라이언트를 쓰는 프로젝트에서 OpenAPI는 문서가 아니라 컴파일 경계다. view 구현과 동시에 요청·응답 스키마를 설계해야 프런트 타입 검사가 계약 회귀를 잡아낼 수 있다.
+
+## 세션 인증 — 로그인 직후 CSRF 토큰 회전
+
+### 증상
+
+CSRF 검사를 강제한 통합 테스트에서 로그인은 성공했지만 바로 이어진 예약·관리자·챗봇 POST가 403을 반환했다.
+
+### 원인
+
+Django는 로그인 시 세션 고정 공격을 막기 위해 CSRF 토큰을 회전한다. 테스트가 로그인 전에 발급된 토큰을 계속 헤더에 사용하고 있었다.
+
+### 해결
+
+로그인 응답 뒤 갱신된 `csrftoken` 쿠키를 다시 읽도록 테스트를 수정했다. Nuxt 클라이언트도 mutation 직전에 쿠키에서 최신 토큰을 읽어 `X-CSRFToken`에 넣는다.
+
+### 배운 점
+
+쿠키 인증 전환은 `credentials: include`만으로 끝나지 않는다. CSRF 발급 시점, 로그인 시 토큰 회전, 브라우저 쿠키와 헤더의 동기화를 하나의 흐름으로 검증해야 한다.
+
+## 서비스 계층 — 실제 세션 사용자에서만 발생한 LazyObject 오류
+
+### 증상
+
+서비스 단위 테스트는 통과했지만 실제 세션으로 예약 API를 호출하면 `SimpleLazyObject`에 `objects`가 없다는 500 오류가 발생했다.
+
+### 원인
+
+행 잠금을 위해 `type(user).objects`를 사용했다. 직접 만든 `User` 인스턴스에서는 동작하지만 Django request의 `request.user`는 지연 평가 wrapper일 수 있다.
+
+### 해결
+
+예약·포인트·결제 서비스에서 `django.contrib.auth.get_user_model()`로 모델을 가져와 잠금 조회하도록 통일했다.
+
+### 배운 점
+
+서비스 단위 테스트와 HTTP 통합 테스트는 서로 다른 오류를 잡는다. 프레임워크가 주입하는 proxy·lazy 객체까지 확인하려면 실제 인증 middleware를 통과한 테스트가 필요하다.
+
+## 로컬 브라우저 — localhost와 127.0.0.1 혼용
+
+### 증상
+
+Nuxt와 Django가 각각 정상 실행되고 API 테스트도 통과했지만 브라우저 회원가입에서는 `Failed to fetch`가 표시됐다.
+
+### 원인
+
+프런트는 `127.0.0.1`, CORS·CSRF 허용 origin은 `localhost`를 사용했다. 두 주소는 네트워크상 같은 컴퓨터를 가리키지만 브라우저 origin과 SameSite 쿠키 기준에서는 서로 다르다.
+
+### 해결
+
+개발 기본 주소를 `http://localhost:3000`과 `http://localhost:8000`으로 통일하고, 환경 변수 예시에는 `localhost`와 `127.0.0.1`을 모두 허용 origin으로 기록했다. 이후 브라우저에서 회원가입, 로그인, SSR 프로필, 메뉴·예약 조회, 로그아웃을 순서대로 확인했다.
+
+### 배운 점
+
+로컬 연동 검증은 curl만으로 대체할 수 없다. CORS, SameSite, HttpOnly, CSRF는 브라우저 보안 모델 안에서만 드러나는 문제가 있으므로 실제 origin을 사용한 E2E 점검이 필요하다.
+
+## 결제와 예약 후처리 — Edge Function과 pg_cron 책임 이동
+
+Toss 결제 승인은 브라우저가 전달한 값을 바로 신뢰하지 않고 Django가 비밀 키로 Toss 승인 API를 호출한 뒤에만 포인트를 적립한다. 주문 소유권·금액을 먼저 검증하고 주문 ID를 멱등성 키로 사용한다.
+
+Supabase `pg_cron`이 담당하던 노쇼 처리는 Celery Beat 15분 작업으로 옮겼다. 식사 종료 1시간이 지난 예약을 행 잠금으로 처리하고 예약금을 제외한 금액과 거래 이력을 같은 트랜잭션에 기록한다. 대화 7일 삭제도 Celery Beat 작업으로 이전했다.
+
+## 현재 로컬 연동 상태
+
+Nuxt의 인증·메뉴·예약·포인트·관리자·챗봇 코드는 모두 생성 OpenAPI 클라이언트 패키지를 통해 Django `/api/v1/`을 사용한다. `@nuxtjs/supabase`, Supabase CLI 패키지, 생성 DB 타입과 직접 `.from()`·`.rpc()`·Edge Function 호출은 프런트와 lockfile에서 제거했다.
+
+`supabase/` 디렉터리는 Neon 데이터 이관과 장애 복구 대조를 위한 legacy 원본으로만 남겨 두며 런타임에서는 사용하지 않는다. 외부 기능을 실제로 사용하려면 로컬 `.env`에 `TOSS_PAYMENTS_SECRET_KEY`, `GEMINI_API_KEY`를 설정해야 한다.

@@ -8,17 +8,28 @@ export type AuthUser = {
   metadata: AuthMetadata;
 };
 
-const toAuthUser = (user: { id: string; user_metadata?: AuthMetadata } | null): AuthUser | null => {
-  if (!user) return null;
-  return { id: user.id, metadata: user.user_metadata || {} };
+type DjangoUser = {
+  id: string;
+  name: string;
+  student_id: string;
 };
 
-/**
- * 인증 공급자 경계다. 현재는 Supabase Auth를 사용하지만, Django 쿠키 인증으로
- * 전환할 때 화면·미들웨어를 바꾸지 않고 이 composable만 교체한다.
- */
+const toAuthUser = (user: DjangoUser): AuthUser => ({
+  id: user.id,
+  metadata: { name: user.name, student_id: user.student_id }
+});
+
+const apiError = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error;
+  if (typeof error === "object" && error) {
+    const body = error as { detail?: string; non_field_errors?: string[] };
+    return new Error(body.detail || body.non_field_errors?.[0] || fallback);
+  }
+  return new Error(fallback);
+};
+
 export const useAuth = () => {
-  const supabase = useSupabaseClient();
+  const djangoApi = useDjangoApi();
   const user = useState<AuthUser | null>("auth-user", () => null);
   const loading = useState("auth-loading", () => false);
   const initialized = useState("auth-initialized", () => false);
@@ -26,12 +37,13 @@ export const useAuth = () => {
   const refresh = async () => {
     loading.value = true;
     try {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
+      const { data, error, response } = await djangoApi.getClient().GET("/api/v1/me/");
+      if (response.status === 401 || response.status === 403) {
         user.value = null;
         return null;
       }
-      user.value = toAuthUser(data.user);
+      if (error || !data) throw apiError(error, "사용자 정보를 불러오지 못했습니다.");
+      user.value = toAuthUser(data);
       return user.value;
     } finally {
       initialized.value = true;
@@ -42,9 +54,14 @@ export const useAuth = () => {
   const ensureInitialized = async () => (initialized.value ? user.value : refresh());
 
   const signIn = async ({ email, password }: { email: string; password: string }) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
-    return refresh();
+    await djangoApi.ensureCsrf();
+    const { data, error } = await djangoApi
+      .getClient()
+      .POST("/api/v1/auth/login/", { body: { email, password } });
+    if (error || !data) throw apiError(error, "로그인에 실패했습니다.");
+    user.value = toAuthUser(data);
+    initialized.value = true;
+    return user.value;
   };
 
   const signUp = async ({
@@ -58,17 +75,17 @@ export const useAuth = () => {
     name: string;
     studentId: string;
   }) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, student_id: studentId, role: "student" } }
+    await djangoApi.ensureCsrf();
+    const { error } = await djangoApi.getClient().POST("/api/v1/auth/signup/", {
+      body: { email, password, name, student_id: studentId }
     });
-    if (error) throw new Error(error.message);
+    if (error) throw apiError(error, "회원가입에 실패했습니다.");
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(error.message);
+    await djangoApi.ensureCsrf();
+    const { error } = await djangoApi.getClient().POST("/api/v1/auth/logout/");
+    if (error) throw apiError(error, "로그아웃에 실패했습니다.");
     user.value = null;
     initialized.value = true;
   };

@@ -17,7 +17,12 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: astral-sh/setup-uv@v6
       - run: pnpm install --frozen-lockfile
+      - run: uv --directory backend sync --all-groups --frozen
+      - run: pnpm generate:api-client
+      - run: git diff --exit-code -- packages/api-client/src/schema.d.ts
+      - run: pnpm typecheck:api-client
       - run: pnpm typecheck:web
       - run: pnpm build:web
 
@@ -27,5 +32,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv --directory backend sync --all-groups --frozen
+      - run: uv --directory backend run ruff check .
       - run: uv --directory backend run python manage.py makemigrations --check --dry-run
       - run: uv --directory backend run pytest

@@ -1,5 +1,6 @@
 import uuid
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
@@ -20,8 +21,10 @@ def create_point_order(*, user, amount: int) -> PointOrder:
 
 
 @transaction.atomic
-def confirm_paid_order(*, order_id: str, payment_key: str, approved_amount: int, toss_response: dict) -> PointOrder:
+def confirm_paid_order(*, user, order_id: str, payment_key: str, approved_amount: int, toss_response: dict) -> PointOrder:
     order = PointOrder.objects.select_for_update().select_related("user").get(order_id=order_id)
+    if order.user_id != user.id:
+        raise PaymentError("본인의 충전 주문만 승인할 수 있습니다.")
     if order.status == PointOrder.Status.PAID:
         return order
     if order.status != PointOrder.Status.PENDING or order.amount != approved_amount:
@@ -33,7 +36,7 @@ def confirm_paid_order(*, order_id: str, payment_key: str, approved_amount: int,
     order.paid_at = timezone.now()
     order.toss_response = toss_response
     order.save(update_fields=["status", "payment_key", "paid_at", "toss_response", "updated_at"])
-    user = type(order.user).objects.select_for_update().get(id=order.user_id)
+    user = get_user_model().objects.select_for_update().get(id=order.user_id)
     user.current_point += order.point_amount
     user.save(update_fields=["current_point"])
     PointTransaction.objects.create(user=user, amount=order.point_amount, type=PointTransaction.Type.CHARGE, description="포인트 충전")
