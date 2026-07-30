@@ -37,7 +37,7 @@ export const useAuth = () => {
   const refresh = async () => {
     loading.value = true;
     try {
-      const { data, error, response } = await djangoApi.getClient().GET("/api/v1/me/");
+      const { data, error, response } = await djangoApi.getClient().GET("/api/me/");
       if (response.status === 401 || response.status === 403) {
         user.value = null;
         return null;
@@ -57,7 +57,7 @@ export const useAuth = () => {
     await djangoApi.ensureCsrf();
     const { data, error } = await djangoApi
       .getClient()
-      .POST("/api/v1/auth/login/", { body: { email, password } });
+      .POST("/api/auth/login/", { body: { email, password } });
     if (error || !data) throw apiError(error, "로그인에 실패했습니다.");
     user.value = toAuthUser(data);
     initialized.value = true;
@@ -76,7 +76,7 @@ export const useAuth = () => {
     studentId: string;
   }) => {
     await djangoApi.ensureCsrf();
-    const { error } = await djangoApi.getClient().POST("/api/v1/auth/signup/", {
+    const { error } = await djangoApi.getClient().POST("/api/auth/signup/", {
       body: { email, password, name, student_id: studentId }
     });
     if (error) throw apiError(error, "회원가입에 실패했습니다.");
@@ -84,7 +84,7 @@ export const useAuth = () => {
 
   const signOut = async () => {
     await djangoApi.ensureCsrf();
-    const { error } = await djangoApi.getClient().POST("/api/v1/auth/logout/");
+    const { error } = await djangoApi.getClient().POST("/api/auth/logout/");
     if (error) throw apiError(error, "로그아웃에 실패했습니다.");
     user.value = null;
     initialized.value = true;

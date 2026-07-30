@@ -13,6 +13,6 @@ def test_openapi_schema_is_available():
 
     assert response.status_code == 200
     assert b"cookieAuth" in response.content
-    assert b"/api/v1/auth/login/" in response.content
-    assert b"/api/v1/reservations/" in response.content
+    assert b"/api/auth/login/" in response.content
+    assert b"/api/reservations/" in response.content
     assert b"SupabaseJWT" not in response.content

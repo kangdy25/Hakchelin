@@ -14,7 +14,7 @@ from wallet.models import PointTransaction
 
 def csrf_client():
     client = APIClient(enforce_csrf_checks=True)
-    response = client.get("/api/v1/auth/csrf/")
+    response = client.get("/api/auth/csrf/")
     assert response.status_code == 200
     return client, client.cookies["csrftoken"].value
 
@@ -22,7 +22,7 @@ def csrf_client():
 def login_client(user):
     client, csrf_token = csrf_client()
     response = client.post(
-        "/api/v1/auth/login/",
+        "/api/auth/login/",
         {"email": user.email, "password": "correct-password"},
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,
@@ -51,7 +51,7 @@ def test_login_requires_csrf_and_creates_session_cookie():
         name="학생",
     )
     rejected = APIClient(enforce_csrf_checks=True).post(
-        "/api/v1/auth/login/",
+        "/api/auth/login/",
         {"email": user.email, "password": "correct-password"},
         format="json",
     )
@@ -59,7 +59,7 @@ def test_login_requires_csrf_and_creates_session_cookie():
 
     client, _ = login_client(user)
     assert "sessionid" in client.cookies
-    me = client.get("/api/v1/me/")
+    me = client.get("/api/me/")
     assert me.status_code == 200
     assert me.json()["id"] == str(user.id)
 
@@ -74,7 +74,7 @@ def test_signup_validates_duplicate_identity():
     )
     client, csrf_token = csrf_client()
     response = client.post(
-        "/api/v1/auth/signup/",
+        "/api/auth/signup/",
         {
             "email": "new@example.com",
             "password": "correct-password",
@@ -107,7 +107,7 @@ def test_authenticated_reservation_flow_is_user_scoped():
     client, csrf_token = login_client(user)
 
     created = client.post(
-        "/api/v1/reservations/",
+        "/api/reservations/",
         {"menu_id": menu.id, "options": {"main": 0, "rice": 1}, "total_price": 5_500},
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,
@@ -115,12 +115,12 @@ def test_authenticated_reservation_flow_is_user_scoped():
     assert created.status_code == 201
     reservation_id = created.json()["id"]
 
-    mine = client.get("/api/v1/reservations/me/")
+    mine = client.get("/api/reservations/me/")
     assert [item["id"] for item in mine.json()] == [reservation_id]
 
     other_client, other_csrf = login_client(other)
     forbidden_cancel = other_client.post(
-        f"/api/v1/reservations/{reservation_id}/cancel/",
+        f"/api/reservations/{reservation_id}/cancel/",
         format="json",
         HTTP_X_CSRFTOKEN=other_csrf,
     )
@@ -156,11 +156,11 @@ def test_admin_api_enforces_role_and_ticket_actions():
     )
 
     student_client, _ = login_client(student)
-    assert student_client.get("/api/v1/admin/users/").status_code == 403
+    assert student_client.get("/api/admin/users/").status_code == 403
 
     admin_client, csrf_token = login_client(admin)
     used = admin_client.post(
-        f"/api/v1/admin/reservations/{reservation.id}/use/",
+        f"/api/admin/reservations/{reservation.id}/use/",
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,
     )
@@ -179,7 +179,7 @@ def test_chat_sse_contract_and_conversation_isolation():
     client, csrf_token = login_client(user)
     conversation_id = "05f35575-84df-4fef-a7f7-651899d3f760"
     response = client.post(
-        "/api/v1/chat/stream/",
+        "/api/chat/stream/",
         {"message": "오늘 메뉴 알려줘", "conversation_id": conversation_id},
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,
@@ -191,7 +191,7 @@ def test_chat_sse_contract_and_conversation_isolation():
     assert body.index("event: token") < body.index("event: done")
     assert ChatMessage.objects.filter(user=user, conversation_id=conversation_id).count() == 2
 
-    history = client.get(f"/api/v1/chat/{conversation_id}/")
+    history = client.get(f"/api/chat/{conversation_id}/")
     assert [item["role"] for item in history.json()] == ["user", "assistant"]
 
 
@@ -205,7 +205,7 @@ def test_point_payment_calls_toss_once_and_is_idempotent(monkeypatch):
     )
     client, csrf_token = login_client(user)
     created = client.post(
-        "/api/v1/payments/point-orders/",
+        "/api/payments/point-orders/",
         {"amount": 5000},
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,
@@ -222,13 +222,13 @@ def test_point_payment_calls_toss_once_and_is_idempotent(monkeypatch):
     }
 
     first = client.post(
-        "/api/v1/payments/point-orders/confirm/",
+        "/api/payments/point-orders/confirm/",
         payload,
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,
     )
     second = client.post(
-        "/api/v1/payments/point-orders/confirm/",
+        "/api/payments/point-orders/confirm/",
         payload,
         format="json",
         HTTP_X_CSRFTOKEN=csrf_token,

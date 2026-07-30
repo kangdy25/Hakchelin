@@ -4,14 +4,14 @@
  */
 
 export interface paths {
-    "/api/v1/admin/ai-logs/": {
+    "/api/admin/ai-logs/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_admin_ai_logs_list"];
+        get: operations["admin_ai_logs_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -20,14 +20,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/reservations/": {
+    "/api/admin/reservations/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_admin_reservations_list"];
+        get: operations["admin_reservations_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -36,7 +36,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/reservations/{reservation_id}/{action}/": {
+    "/api/admin/reservations/{reservation_id}/{action}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -45,21 +45,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_admin_reservations_create"];
+        post: operations["admin_reservations_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/transactions/": {
+    "/api/admin/transactions/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_admin_transactions_list"];
+        get: operations["admin_transactions_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -68,14 +68,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/users/": {
+    "/api/admin/users/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_admin_users_list"];
+        get: operations["admin_users_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -84,7 +84,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/users/{user_id}/points/": {
+    "/api/admin/users/{user_id}/points/": {
         parameters: {
             query?: never;
             header?: never;
@@ -93,14 +93,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_admin_users_points_create"];
+        post: operations["admin_users_points_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/users/{user_id}/role/": {
+    "/api/admin/users/{user_id}/role/": {
         parameters: {
             query?: never;
             header?: never;
@@ -109,21 +109,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_admin_users_role_create"];
+        post: operations["admin_users_role_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/csrf/": {
+    "/api/auth/csrf/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_auth_csrf_retrieve"];
+        get: operations["auth_csrf_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -132,7 +132,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/login/": {
+    "/api/auth/login/": {
         parameters: {
             query?: never;
             header?: never;
@@ -141,14 +141,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_auth_login_create"];
+        post: operations["auth_login_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/logout/": {
+    "/api/auth/logout/": {
         parameters: {
             query?: never;
             header?: never;
@@ -157,14 +157,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_auth_logout_create"];
+        post: operations["auth_logout_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/signup/": {
+    "/api/auth/signup/": {
         parameters: {
             query?: never;
             header?: never;
@@ -173,21 +173,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_auth_signup_create"];
+        post: operations["auth_signup_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/{conversation_id}/": {
+    "/api/chat/{conversation_id}/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_chat_list"];
+        get: operations["chat_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -196,7 +196,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/chat/stream/": {
+    "/api/chat/stream/": {
         parameters: {
             query?: never;
             header?: never;
@@ -205,21 +205,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_chat_stream_create"];
+        post: operations["chat_stream_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/me/": {
+    "/api/me/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_me_retrieve"];
+        get: operations["me_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -228,23 +228,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/menus/": {
+    "/api/menus/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_menus_list"];
+        get: operations["menus_list"];
         put?: never;
-        post: operations["v1_menus_create"];
+        post: operations["menus_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/menus/{menu_id}/": {
+    "/api/menus/{menu_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -254,13 +254,13 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete: operations["v1_menus_destroy"];
+        delete: operations["menus_destroy"];
         options?: never;
         head?: never;
-        patch: operations["v1_menus_partial_update"];
+        patch: operations["menus_partial_update"];
         trace?: never;
     };
-    "/api/v1/payments/point-orders/": {
+    "/api/payments/point-orders/": {
         parameters: {
             query?: never;
             header?: never;
@@ -269,14 +269,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_payments_point_orders_create"];
+        post: operations["payments_point_orders_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/payments/point-orders/confirm/": {
+    "/api/payments/point-orders/confirm/": {
         parameters: {
             query?: never;
             header?: never;
@@ -285,14 +285,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_payments_point_orders_confirm_create"];
+        post: operations["payments_point_orders_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reservations/": {
+    "/api/reservations/": {
         parameters: {
             query?: never;
             header?: never;
@@ -301,14 +301,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_reservations_create"];
+        post: operations["reservations_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reservations/{reservation_id}/cancel/": {
+    "/api/reservations/{reservation_id}/cancel/": {
         parameters: {
             query?: never;
             header?: never;
@@ -317,21 +317,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_reservations_cancel_create"];
+        post: operations["reservations_cancel_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reservations/me/": {
+    "/api/reservations/me/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_reservations_me_list"];
+        get: operations["reservations_me_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -340,7 +340,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/wallet/donations/": {
+    "/api/wallet/donations/": {
         parameters: {
             query?: never;
             header?: never;
@@ -349,21 +349,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["v1_wallet_donations_create"];
+        post: operations["wallet_donations_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/wallet/transactions/me/": {
+    "/api/wallet/transactions/me/": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_wallet_transactions_me_list"];
+        get: operations["wallet_transactions_me_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -608,7 +608,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    v1_admin_ai_logs_list: {
+    admin_ai_logs_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -627,7 +627,7 @@ export interface operations {
             };
         };
     };
-    v1_admin_reservations_list: {
+    admin_reservations_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -646,7 +646,7 @@ export interface operations {
             };
         };
     };
-    v1_admin_reservations_create: {
+    admin_reservations_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -668,7 +668,7 @@ export interface operations {
             };
         };
     };
-    v1_admin_transactions_list: {
+    admin_transactions_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -687,7 +687,7 @@ export interface operations {
             };
         };
     };
-    v1_admin_users_list: {
+    admin_users_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -706,7 +706,7 @@ export interface operations {
             };
         };
     };
-    v1_admin_users_points_create: {
+    admin_users_points_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -733,7 +733,7 @@ export interface operations {
             };
         };
     };
-    v1_admin_users_role_create: {
+    admin_users_role_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -760,7 +760,7 @@ export interface operations {
             };
         };
     };
-    v1_auth_csrf_retrieve: {
+    auth_csrf_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -779,7 +779,7 @@ export interface operations {
             };
         };
     };
-    v1_auth_login_create: {
+    auth_login_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -804,7 +804,7 @@ export interface operations {
             };
         };
     };
-    v1_auth_logout_create: {
+    auth_logout_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -822,7 +822,7 @@ export interface operations {
             };
         };
     };
-    v1_auth_signup_create: {
+    auth_signup_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -847,7 +847,7 @@ export interface operations {
             };
         };
     };
-    v1_chat_list: {
+    chat_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -868,7 +868,7 @@ export interface operations {
             };
         };
     };
-    v1_chat_stream_create: {
+    chat_stream_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -893,7 +893,7 @@ export interface operations {
             };
         };
     };
-    v1_me_retrieve: {
+    me_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -912,7 +912,7 @@ export interface operations {
             };
         };
     };
-    v1_menus_list: {
+    menus_list: {
         parameters: {
             query?: {
                 active_only?: boolean;
@@ -934,7 +934,7 @@ export interface operations {
             };
         };
     };
-    v1_menus_create: {
+    menus_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -959,7 +959,7 @@ export interface operations {
             };
         };
     };
-    v1_menus_destroy: {
+    menus_destroy: {
         parameters: {
             query?: never;
             header?: never;
@@ -979,7 +979,7 @@ export interface operations {
             };
         };
     };
-    v1_menus_partial_update: {
+    menus_partial_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -1006,7 +1006,7 @@ export interface operations {
             };
         };
     };
-    v1_payments_point_orders_create: {
+    payments_point_orders_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1031,7 +1031,7 @@ export interface operations {
             };
         };
     };
-    v1_payments_point_orders_confirm_create: {
+    payments_point_orders_confirm_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1056,7 +1056,7 @@ export interface operations {
             };
         };
     };
-    v1_reservations_create: {
+    reservations_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1081,7 +1081,7 @@ export interface operations {
             };
         };
     };
-    v1_reservations_cancel_create: {
+    reservations_cancel_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1102,7 +1102,7 @@ export interface operations {
             };
         };
     };
-    v1_reservations_me_list: {
+    reservations_me_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1121,7 +1121,7 @@ export interface operations {
             };
         };
     };
-    v1_wallet_donations_create: {
+    wallet_donations_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1146,7 +1146,7 @@ export interface operations {
             };
         };
     };
-    v1_wallet_transactions_me_list: {
+    wallet_transactions_me_list: {
         parameters: {
             query?: never;
             header?: never;
