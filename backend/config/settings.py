@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "wallet",
     "payments",
     "chatbot",
+    "legacy_bridge.apps.LegacyBridgeConfig",
 ]
 
 MIDDLEWARE = [
@@ -75,6 +76,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
 REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
+
+SUPABASE_JWT_ISSUER = os.getenv("SUPABASE_JWT_ISSUER", "")
+SUPABASE_JWT_AUDIENCE = os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated")
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+SUPABASE_JWT_JWKS_URL = os.getenv("SUPABASE_JWT_JWKS_URL", "")
 SPECTACULAR_SETTINGS = {
     "TITLE": "Hakchelin API",
     "DESCRIPTION": "Hakchelin Django API contract",
