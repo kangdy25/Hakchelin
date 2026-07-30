@@ -51,6 +51,7 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 
 - CSRF 쿠키 발급, 이메일·비밀번호 회원가입, 로그인, 로그아웃, 현재 사용자 API를 구현했다.
 - 인증 상태는 Django `sessionid` HttpOnly 쿠키로 유지한다.
+- 현재 로컬 계약에는 access/refresh 토큰과 토큰 갱신 API가 없다. 운영 인증 방식을 확정할 때 세션 유지 여부를 결정하고, 토큰 방식을 선택하는 경우에만 Secure·HttpOnly access/refresh 쿠키와 갱신 API를 후속 구현한다.
 - 모든 변경 요청은 `csrftoken`과 `X-CSRFToken`을 대조한다.
 - 관리자 API는 사용자 `role`이 `admin`인지 서버에서 검사한다.
 - 사용자 예약·거래·대화 조회는 항상 `request.user`로 범위를 제한한다.
