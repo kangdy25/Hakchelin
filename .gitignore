@@ -24,5 +24,12 @@ logs
 !.env.example
 .vercel
 
+# Python / Django
+.venv
+__pycache__/
+*.py[cod]
+db.sqlite3
+.pytest_cache/
+
 # AI Agent
 .antigravitycli

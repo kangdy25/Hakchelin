@@ -1,0 +1,71 @@
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_HOST: ${API_HOST:?set API_HOST to api.example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    image: ${API_IMAGE:-hakchelin-api:local}
+    build:
+      context: ../../backend
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-../../backend/.env}
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --access-logfile -
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ${API_IMAGE:-hakchelin-api:local}
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-../../backend/.env}
+    command: celery -A config worker --loglevel=INFO --concurrency=1
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  beat:
+    image: ${API_IMAGE:-hakchelin-api:local}
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-../../backend/.env}
+    command: celery -A config beat --loglevel=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  redis_data:
