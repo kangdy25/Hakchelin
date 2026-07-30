@@ -47,7 +47,7 @@ export const useApi = () => {
     { activeOnly = false, fromDate }: { activeOnly?: boolean; fromDate?: string } = {}
   ) =>
     unwrap(
-      await djangoApi.getClient().GET("/api/v1/menus/", {
+      await djangoApi.getClient().GET("/api/menus/", {
         params: { query: { active_only: activeOnly, from_date: fromDate } }
       })
     ) as Menu[];
@@ -55,13 +55,13 @@ export const useApi = () => {
   const createMenu = async (input: CreateMenuInput) => {
     await djangoApi.ensureCsrf();
     const { id: _legacyId, ...body } = input;
-    unwrap(await djangoApi.getClient().POST("/api/v1/menus/", { body }));
+    unwrap(await djangoApi.getClient().POST("/api/menus/", { body }));
   };
 
   const updateMenu = async (id: string, input: UpdateMenuInput) => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().PATCH("/api/v1/menus/{menu_id}/", {
+      await djangoApi.getClient().PATCH("/api/menus/{menu_id}/", {
         params: { path: { menu_id: id } },
         body: input
       })
@@ -70,7 +70,7 @@ export const useApi = () => {
 
   const deactivateMenu = async (id: string) => {
     await djangoApi.ensureCsrf();
-    const { error } = await djangoApi.getClient().DELETE("/api/v1/menus/{menu_id}/", {
+    const { error } = await djangoApi.getClient().DELETE("/api/menus/{menu_id}/", {
       params: { path: { menu_id: id } }
     });
     if (error) throw new Error(getErrorMessage(error));
@@ -87,17 +87,17 @@ export const useApi = () => {
   }) => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().POST("/api/v1/reservations/", {
+      await djangoApi.getClient().POST("/api/reservations/", {
         body: { menu_id: menuId, options, total_price: totalPrice }
       })
     );
   };
 
   const getMyReservations = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/reservations/me/")) as unknown as Reservation[];
+    unwrap(await djangoApi.getClient().GET("/api/reservations/me/")) as unknown as Reservation[];
 
   const getReservations = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/admin/reservations/")) as unknown as Reservation[];
+    unwrap(await djangoApi.getClient().GET("/api/admin/reservations/")) as unknown as Reservation[];
 
   const getMenusByIds = async (ids: string[]) => {
     if (!ids.length) {
@@ -120,7 +120,7 @@ export const useApi = () => {
   const cancelReservation = async (reservationId: string) => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().POST("/api/v1/reservations/{reservation_id}/cancel/", {
+      await djangoApi.getClient().POST("/api/reservations/{reservation_id}/cancel/", {
         params: { path: { reservation_id: reservationId } }
       })
     );
@@ -129,23 +129,23 @@ export const useApi = () => {
   const reservationAdminAction = async (reservationId: string, action: "use" | "cancel") => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().POST("/api/v1/admin/reservations/{reservation_id}/{action}/", {
+      await djangoApi.getClient().POST("/api/admin/reservations/{reservation_id}/{action}/", {
         params: { path: { reservation_id: reservationId, action } }
       })
     );
   };
 
   const getMyTransactions = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/wallet/transactions/me/")) as Transaction[];
+    unwrap(await djangoApi.getClient().GET("/api/wallet/transactions/me/")) as Transaction[];
 
   const getTransactions = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/admin/transactions/")) as Transaction[];
+    unwrap(await djangoApi.getClient().GET("/api/admin/transactions/")) as Transaction[];
 
   const getUsers = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/admin/users/")) as User[];
+    unwrap(await djangoApi.getClient().GET("/api/admin/users/")) as User[];
 
   const getMyProfile = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/me/")) as Pick<
+    unwrap(await djangoApi.getClient().GET("/api/me/")) as Pick<
       User,
       "name" | "student_id" | "current_point" | "role"
     >;
@@ -161,7 +161,7 @@ export const useApi = () => {
   }) => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().POST("/api/v1/admin/users/{user_id}/points/", {
+      await djangoApi.getClient().POST("/api/admin/users/{user_id}/points/", {
         params: { path: { user_id: userId } },
         body: { amount, description }
       })
@@ -171,7 +171,7 @@ export const useApi = () => {
   const updateUserRole = async ({ userId, role }: { userId: string; role: "student" | "admin" }) => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().POST("/api/v1/admin/users/{user_id}/role/", {
+      await djangoApi.getClient().POST("/api/admin/users/{user_id}/role/", {
         params: { path: { user_id: userId } },
         body: { role }
       })
@@ -181,7 +181,7 @@ export const useApi = () => {
   const donatePoints = async (amount: number) => {
     await djangoApi.ensureCsrf();
     unwrap(
-      await djangoApi.getClient().POST("/api/v1/wallet/donations/", {
+      await djangoApi.getClient().POST("/api/wallet/donations/", {
         body: { amount }
       })
     );
@@ -190,7 +190,7 @@ export const useApi = () => {
   const createPointOrder = async (amount: number) => {
     await djangoApi.ensureCsrf();
     return unwrap(
-      await djangoApi.getClient().POST("/api/v1/payments/point-orders/", {
+      await djangoApi.getClient().POST("/api/payments/point-orders/", {
         body: { amount }
       })
     );
@@ -207,7 +207,7 @@ export const useApi = () => {
   }) => {
     await djangoApi.ensureCsrf();
     const order = unwrap(
-      await djangoApi.getClient().POST("/api/v1/payments/point-orders/confirm/", {
+      await djangoApi.getClient().POST("/api/payments/point-orders/confirm/", {
         body: { payment_key: paymentKey, order_id: orderId, amount }
       })
     );
@@ -216,7 +216,7 @@ export const useApi = () => {
 
   const getChatMessages = async (conversationId: string) =>
     unwrap(
-      await djangoApi.getClient().GET("/api/v1/chat/{conversation_id}/", {
+      await djangoApi.getClient().GET("/api/chat/{conversation_id}/", {
         params: { path: { conversation_id: conversationId } }
       })
     ).filter((item): item is ChatMessage => item.role === "user" || item.role === "assistant");
@@ -225,7 +225,7 @@ export const useApi = () => {
     djangoApi.streamChat({ message, conversation_id: conversationId });
 
   const getAiLogs = async () =>
-    unwrap(await djangoApi.getClient().GET("/api/v1/admin/ai-logs/")) as AiLog[];
+    unwrap(await djangoApi.getClient().GET("/api/admin/ai-logs/")) as AiLog[];
 
   return {
     getErrorMessage,

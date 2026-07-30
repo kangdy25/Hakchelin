@@ -178,6 +178,6 @@ Supabase `pg_cron`이 담당하던 노쇼 처리는 Celery Beat 15분 작업으�
 
 ## 현재 로컬 연동 상태
 
-Nuxt의 인증·메뉴·예약·포인트·관리자·챗봇 코드는 모두 생성 OpenAPI 클라이언트 패키지를 통해 Django `/api/v1/`을 사용한다. `@nuxtjs/supabase`, Supabase CLI 패키지, 생성 DB 타입과 직접 `.from()`·`.rpc()`·Edge Function 호출은 프런트와 lockfile에서 제거했다.
+Nuxt의 인증·메뉴·예약·포인트·관리자·챗봇 코드는 모두 생성 OpenAPI 클라이언트 패키지를 통해 Django `/api/`을 사용한다. `@nuxtjs/supabase`, Supabase CLI 패키지, 생성 DB 타입과 직접 `.from()`·`.rpc()`·Edge Function 호출은 프런트와 lockfile에서 제거했다.
 
 `supabase/` 디렉터리는 Neon 데이터 이관과 장애 복구 대조를 위한 legacy 원본으로만 남겨 두며 런타임에서는 사용하지 않는다. 외부 기능을 실제로 사용하려면 로컬 `.env`에 `TOSS_PAYMENTS_SECRET_KEY`, `GEMINI_API_KEY`를 설정해야 한다.

@@ -85,7 +85,7 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 
 - `useAuth`를 Supabase Auth에서 Django 세션 인증으로 교체했다.
 - `useDjangoApi`가 SSR 요청 쿠키 전달, 브라우저 credential, CSRF 헤더를 담당한다.
-- 메뉴·예약·포인트·거래·사용자·관리자·챗봇 호출을 Django `/api/v1/`로 전환했다.
+- 메뉴·예약·포인트·거래·사용자·관리자·챗봇 호출을 Django `/api/`로 전환했다.
 - SSE만 API 클라이언트 패키지의 전용 streaming 함수로 처리한다.
 - `@nuxtjs/supabase`, Supabase CLI 패키지, 생성 DB 타입 파일을 제거했다.
 - 프런트와 lockfile에서 `.from()`, `.rpc()`, Edge Function 호출을 제거했다.
@@ -94,6 +94,7 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 ## 5. API 계약과 CI
 
 - Django가 `/api/schema/`에서 OpenAPI 문서를 생성한다.
+- 초기에는 호환되지 않는 API를 병행할 가능성에 대비해 `v1` 경로 접두사를 사용했지만, 현재는 외부 공개 소비자 없이 Nuxt와 Django를 함께 배포한다. 사용하지 않는 버전 계층을 유지하지 않기 위해 `/api/`로 단순화했고, 향후 독립 소비자나 장기 호환 요구가 생길 때 버전 정책을 다시 도입한다.
 - 요청과 응답 serializer를 분리해 읽기 전용 필드가 쓰기 타입에 섞이지 않도록 했다.
 - OpenAPI는 실행 중인 서버가 아닌 Django management command에서 생성한다.
 - 생성된 TypeScript 타입은 `packages/api-client/src/schema.d.ts`에 커밋한다.

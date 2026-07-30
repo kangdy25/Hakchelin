@@ -13,7 +13,7 @@ export const createChatStream = (
   body: { message: string; conversation_id: string },
   csrfToken: string
 ) =>
-  fetch(`${baseUrl}/api/v1/chat/stream/`, {
+  fetch(`${baseUrl}/api/chat/stream/`, {
     method: "POST",
     credentials: "include",
     headers: {

@@ -33,7 +33,7 @@ export const useDjangoApi = () => {
 
   const ensureCsrf = async () => {
     if (readCookie("csrftoken")) return;
-    const { error } = await getClient().GET("/api/v1/auth/csrf/");
+    const { error } = await getClient().GET("/api/auth/csrf/");
     if (error) throw error;
   };
 
