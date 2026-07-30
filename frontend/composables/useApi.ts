@@ -36,6 +36,13 @@ const getErrorMessage = (error: unknown, fallback = "요청 처리 중 오류가
 export const useApi = () => {
   const supabase = useSupabaseClient<Database>();
   const runtimeConfig = useRuntimeConfig();
+  const djangoApi = useDjangoApi();
+
+  const getDjangoData = async <T>(request: () => Promise<{ data?: unknown; error?: unknown }>) => {
+    const { data, error } = await request();
+    if (error) throw new Error(getErrorMessage(error));
+    return data as T;
+  };
 
   const currentUserId = async () => {
     const { data } = await supabase.auth.getClaims();
@@ -46,6 +53,10 @@ export const useApi = () => {
   };
 
   const getMenus = async ({ activeOnly = false, fromDate }: { activeOnly?: boolean; fromDate?: string } = {}) => {
+    if (djangoApi.enabled.value) {
+      const client = await djangoApi.getClient();
+      return getDjangoData<Menu[]>(() => client.GET("/api/v1/menus/", { params: { query: { active_only: activeOnly, from_date: fromDate } } }));
+    }
     let query = supabase.from("menus").select("*").order("meal_date").order("meal_time");
     if (activeOnly) query = query.eq("is_active", true);
     if (fromDate) query = query.gte("meal_date", fromDate);
@@ -89,6 +100,10 @@ export const useApi = () => {
   };
 
   const getMyReservations = async () => {
+    if (djangoApi.enabled.value) {
+      const client = await djangoApi.getClient();
+      return getDjangoData<Reservation[]>(() => client.GET("/api/v1/reservations/me/"));
+    }
     const userId = await currentUserId();
     const { data, error } = await supabase
       .from("reservations")
@@ -139,6 +154,10 @@ export const useApi = () => {
   };
 
   const getMyTransactions = async () => {
+    if (djangoApi.enabled.value) {
+      const client = await djangoApi.getClient();
+      return getDjangoData<Transaction[]>(() => client.GET("/api/v1/wallet/transactions/me/"));
+    }
     const userId = await currentUserId();
     const { data, error } = await supabase
       .from("transactions")
@@ -166,6 +185,10 @@ export const useApi = () => {
   };
 
   const getMyProfile = async () => {
+    if (djangoApi.enabled.value) {
+      const client = await djangoApi.getClient();
+      return getDjangoData<Pick<User, "name" | "student_id" | "current_point" | "role">>(() => client.GET("/api/v1/me/"));
+    }
     const userId = await currentUserId();
     const { data, error } = await supabase
       .from("users")
