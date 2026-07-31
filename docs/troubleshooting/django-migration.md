@@ -227,3 +227,21 @@ ETL 전체를 하나의 대상 트랜잭션으로 묶고 `pg_try_advisory_xact_l
 ## 4단계 — 실행 환경에서 uv 캐시와 Supabase CLI가 보이지 않은 문제
 
 Codex 샌드박스는 사용자 전역 `~/.cache/uv`와 interactive shell의 Supabase CLI 경로를 그대로 사용할 수 없었다. uv 검증은 쓰기 가능한 `/tmp/hakchelin-uv-cache`를 `UV_CACHE_DIR`로 지정해 해결했다. 데이터 이관은 CLI 로그인 상태에 의존하지 않고 `SUPABASE_DATABASE_URL`을 명시적으로 받는 Django 명령으로 구현해, 로컬·CI·점검 창에서 같은 실행 경로를 사용하도록 했다.
+
+## 4단계 — Supabase direct DB 호스트를 해석하지 못한 문제
+
+### 증상
+
+`SUPABASE_DATABASE_URL`에 `db.<project-ref>.supabase.co` 형태의 direct 연결 문자열을 넣고 dry-run을 실행했지만, 비밀번호 인증 전 단계에서 호스트 이름을 해석하지 못했다.
+
+### 원인
+
+Supabase direct connection은 IPv6 경로를 사용한다. 실행 환경이나 네트워크가 IPv4 중심이면 direct 주소를 사용할 수 없고, 프로젝트가 제공하는 Supavisor pooler 경로가 필요하다.
+
+### 해결
+
+Supabase Dashboard의 Connect 화면에서 Session pooler 연결 문자열을 선택한다. 트랜잭션 중 여러 원본 조회를 같은 세션에서 수행하므로 transaction pooler 대신 포트 5432의 session pooler를 사용한다. 비밀번호에 URL 예약 문자가 있으면 percent-encoding한 문자열을 `.env`에 저장한다.
+
+### 배운 점
+
+데이터베이스 연결 검증은 비밀번호만 확인해서는 부족하다. DNS, IP 버전, pooler 모드, 사용자 이름 형식을 별도 계층으로 나눠 진단해야 인증 오류와 네트워크 오류를 혼동하지 않는다.

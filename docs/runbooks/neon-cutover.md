@@ -22,8 +22,8 @@ SUPABASE_DATABASE_URL=postgresql://...supabase.../postgres?sslmode=require
 ```
 
 - `NEON_DATABASE_URL`: Django migration과 ETL에 사용할 Neon 스테이징 연결 문자열
-- `SUPABASE_DATABASE_URL`: Supabase Dashboard의 Connect에서 받은 Direct connection 문자열
-- Supabase pooler 문자열은 원본 전체 읽기에 사용할 수 있지만, 가능하면 점검 창에는 direct 연결을 사용한다.
+- `SUPABASE_DATABASE_URL`: Supabase Dashboard의 Connect에서 받은 Direct connection 또는 Session pooler 문자열
+- 실행 환경이 Supabase direct endpoint의 IPv6 경로를 지원하지 않으면 포트 5432의 Session pooler를 사용한다. 여러 조회를 한 read-only 트랜잭션에서 실행하므로 transaction pooler는 사용하지 않는다.
 - 두 URL이 같은 host·port·database를 가리키면 명령이 실행을 거부한다.
 
 환경 변수 존재 여부는 값을 노출하지 않고 다음처럼 확인한다.
