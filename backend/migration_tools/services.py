@@ -146,8 +146,13 @@ def validate_snapshot(snapshot: SourceSnapshot) -> None:
 
 
 def _normalized_endpoint(database_url: str) -> tuple[str | None, int | None, str]:
-    parsed = urlparse(database_url.replace("postgres://", "postgresql://", 1))
-    return parsed.hostname, parsed.port or 5432, parsed.path.lstrip("/")
+    try:
+        parsed = urlparse(database_url.replace("postgres://", "postgresql://", 1))
+        return parsed.hostname, parsed.port or 5432, parsed.path.lstrip("/")
+    except ValueError as exc:
+        raise MigrationValidationError(
+            "데이터베이스 URL 형식이 올바르지 않습니다. 비밀번호의 예약 문자를 percent-encoding해 주세요."
+        ) from exc
 
 
 def ensure_distinct_databases(source_url: str, target_alias: str) -> None:

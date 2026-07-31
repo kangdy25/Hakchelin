@@ -242,6 +242,8 @@ Supabase direct connection은 IPv6 경로를 사용한다. 실행 환경이나 �
 
 Supabase Dashboard의 Connect 화면에서 Session pooler 연결 문자열을 선택한다. 트랜잭션 중 여러 원본 조회를 같은 세션에서 수행하므로 transaction pooler 대신 포트 5432의 session pooler를 사용한다. 비밀번호에 URL 예약 문자가 있으면 percent-encoding한 문자열을 `.env`에 저장한다.
 
+초기 구현은 잘못된 포트 문자열에서 발생한 `ValueError`를 잡지 못했고, command 테스트도 개발자의 실제 `.env`를 상속했다. URL 파싱 오류를 비밀값 없는 `CommandError`로 변환하고, command 테스트에는 항상 가짜 `SUPABASE_DATABASE_URL`을 주입해 로컬 자격 증명과 완전히 격리했다. 진단 로그에 노출 가능성이 생긴 DB 비밀번호는 즉시 폐기·재설정했다.
+
 ### 배운 점
 
 데이터베이스 연결 검증은 비밀번호만 확인해서는 부족하다. DNS, IP 버전, pooler 모드, 사용자 이름 형식을 별도 계층으로 나눠 진단해야 인증 오류와 네트워크 오류를 혼동하지 않는다.

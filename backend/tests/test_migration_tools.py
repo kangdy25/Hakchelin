@@ -15,6 +15,7 @@ from migration_tools.services import (
     MigrationValidationError,
     SourceSnapshot,
     apply_snapshot,
+    ensure_distinct_databases,
     validate_snapshot,
     verify_snapshot,
 )
@@ -169,9 +170,15 @@ def test_snapshot_rejects_orphan_foreign_keys():
         validate_snapshot(invalid)
 
 
+def test_database_url_with_unescaped_reserved_character_is_rejected():
+    with pytest.raises(MigrationValidationError, match="percent-encoding"):
+        ensure_distinct_databases("postgresql://user:password@host:invalid/db", "default")
+
+
 @pytest.mark.django_db(transaction=True)
 def test_management_command_rolls_back_import_when_verification_fails(monkeypatch):
     snapshot = make_snapshot()
+    monkeypatch.setenv("SUPABASE_DATABASE_URL", "postgresql://source:password@source.example.com:5432/source")
     monkeypatch.setattr(
         "migration_tools.management.commands.migrate_supabase_data.load_supabase_snapshot",
         lambda _url: snapshot,
