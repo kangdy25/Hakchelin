@@ -63,7 +63,7 @@ def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
                 "systemInstruction": {"parts": [{"text": prompt}]},
                 "contents": contents,
             },
-            timeout=20,
+            timeout=settings.GEMINI_REQUEST_TIMEOUT_SECONDS,
         )
         result = response.json()
         if response.is_error:

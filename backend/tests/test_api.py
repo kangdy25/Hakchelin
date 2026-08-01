@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from chatbot.models import ChatMessage
-from chatbot.services import generate_chat_answer
+from chatbot.services import ChatbotError, generate_chat_answer
 from chatbot.tasks import delete_expired_chat_messages
 from meals.models import Menu
 from reservations.models import Reservation
@@ -198,7 +198,11 @@ def test_chat_sse_contract_and_conversation_isolation():
 
 
 @pytest.mark.django_db
-@override_settings(GEMINI_API_KEY="test-key", GEMINI_MODEL="gemini-3.6-flash")
+@override_settings(
+    GEMINI_API_KEY="test-key",
+    GEMINI_MODEL="gemini-3.6-flash",
+    GEMINI_REQUEST_TIMEOUT_SECONDS=45,
+)
 def test_chat_uses_supported_gemini_model_without_deprecated_sampling_parameters(monkeypatch):
     user = User.objects.create_user(
         "student@example.com",
@@ -225,6 +229,32 @@ def test_chat_uses_supported_gemini_model_without_deprecated_sampling_parameters
     assert generate_chat_answer(user=user, message="오늘 메뉴 알려줘", history=[]) == "답변"
     assert request_payload["url"].endswith("/models/gemini-3.6-flash:generateContent")
     assert "generationConfig" not in request_payload["json"]
+    assert request_payload["timeout"] == 45
+
+
+@pytest.mark.django_db
+def test_chat_timeout_does_not_persist_an_unpaired_user_message(monkeypatch):
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+    client, csrf_token = login_client(user)
+    monkeypatch.setattr(
+        "api_views.generate_chat_answer",
+        lambda **_kwargs: (_ for _ in ()).throw(ChatbotError("챗봇 응답을 생성하지 못했습니다.")),
+    )
+
+    response = client.post(
+        "/api/chat/stream/",
+        {"message": "두 번째 질문", "conversation_id": "05f35575-84df-4fef-a7f7-651899d3f760"},
+        format="json",
+        HTTP_X_CSRFTOKEN=csrf_token,
+    )
+
+    assert "event: error" in b"".join(response.streaming_content).decode()
+    assert not ChatMessage.objects.filter(user=user).exists()
 
 
 @pytest.mark.django_db
