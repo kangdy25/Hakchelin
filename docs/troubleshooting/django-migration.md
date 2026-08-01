@@ -301,3 +301,17 @@ Toss 성공 URL로 새 페이지 이동이 일어나면 Vercel SSR은 `api.hakch
 ### 배운 점
 
 PostgreSQL 논리 백업 클라이언트는 서버보다 오래된 major 버전을 고정하면 안 된다. 운영 DB 업그레이드와 백업 도구 버전을 함께 관리하고, 실제 복원 리허설로 버전 변화가 복구 절차에 미치는 영향을 조기에 발견해야 한다.
+
+## 운영 안정화 — Celery worker가 root로 실행된 문제
+
+### 증상
+
+운영 worker는 정상 동작했지만 시작할 때마다 `You're running the worker with superuser privileges` 보안 경고를 출력했다. 같은 이미지의 Django API와 migration도 root 권한으로 실행되고 있었다.
+
+### 해결
+
+Dockerfile에 UID/GID 10001의 전용 사용자를 추가하고 Compose에서도 사용자 ID를 고정했다. 애플리케이션 서비스의 루트 파일시스템을 read-only로 전환하고 capability 제거와 권한 상승 차단을 함께 적용했다. Celery Beat가 기본 작업 디렉터리에 schedule 파일을 기록하므로 쓰기 가능한 `/tmp`를 명시했다.
+
+### 배운 점
+
+컨테이너 내부 root는 호스트 root와 동일하지 않지만 불필요한 권한이며, volume·kernel 취약점·잘못된 capability와 결합될 때 피해 범위를 키운다. 사용자 변경만으로 끝내지 않고 쓰기 경로와 capability를 함께 최소화해야 방어 계층이 생긴다.
