@@ -178,3 +178,5 @@ Neon 스테이징에는 Django migration 전체를 적용했고 실제 생성된
 Lightsail Seoul 인스턴스와 Static IP를 준비했다. API는 `api.hakchelin.cloud`에서 Caddy TLS 뒤에 실행하고, Nuxt는 Vercel의 `hakchelin.cloud`에서 제공하는 분리 구조로 확정했다. Django는 `sessionid`를 API host-only Secure·HttpOnly 쿠키로 유지하며, Nuxt가 CSRF 토큰을 mutation 헤더에 담을 수 있도록 `csrftoken`만 `.hakchelin.cloud` 범위로 설정한다.
 
 Compose에는 일회성 `migrate` 서비스를 추가했다. API·Celery worker·beat가 migration 성공을 의존하므로, 컨테이너가 동시에 기동하면서 DB schema가 준비되기 전에 요청을 처리하는 문제를 피한다. HTTPS redirect와 HSTS는 로컬 기본값에 섞지 않고 운영 환경 파일에서만 명시적으로 활성화한다. 실제 서버 명령, 환경 변수와 롤백 원칙은 [Lightsail 운영 배포 런북](./runbooks/lightsail-deployment.md)에 기록했다.
+
+첫 운영 기동에서는 API health check가 내부 `localhost`와 HTTP로 요청하는 반면, Django 운영 설정은 `api.hakchelin.cloud`만 허용하고 HTTPS redirect를 강제해 컨테이너가 unhealthy가 됐다. health check가 운영 `Host`와 `X-Forwarded-Proto: https` 헤더를 보내도록 수정해 외부 요청과 동일한 프록시 조건을 재현했다. 실제 배포에서는 Caddy가 Let's Encrypt 인증서를 발급했고 `https://api.hakchelin.cloud/healthz`가 `{"status": "ok"}`를 반환했다.
