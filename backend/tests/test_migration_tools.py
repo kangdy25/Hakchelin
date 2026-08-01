@@ -193,3 +193,18 @@ def test_management_command_rolls_back_import_when_verification_fails(monkeypatc
 
     assert get_user_model().objects.count() == 0
     assert Menu.objects.count() == 0
+
+
+def test_verification_command_rejects_identical_source_and_target(monkeypatch):
+    monkeypatch.setenv("SUPABASE_DATABASE_URL", "postgresql://source:password@source.example.com:5432/source")
+
+    def reject_identical_database(_url, _alias):
+        raise MigrationValidationError("같은 데이터베이스")
+
+    monkeypatch.setattr(
+        "migration_tools.management.commands.verify_supabase_migration.ensure_distinct_databases",
+        reject_identical_database,
+    )
+
+    with pytest.raises(CommandError, match="같은 데이터베이스"):
+        call_command("verify_supabase_migration", database="default")

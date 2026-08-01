@@ -5,7 +5,12 @@ import psycopg
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError, connections
 
-from migration_tools.services import MigrationValidationError, load_supabase_snapshot, verify_snapshot
+from migration_tools.services import (
+    MigrationValidationError,
+    ensure_distinct_databases,
+    load_supabase_snapshot,
+    verify_snapshot,
+)
 
 
 class Command(BaseCommand):
@@ -19,7 +24,9 @@ class Command(BaseCommand):
         if database_alias not in connections:
             raise CommandError(f"Django DB alias '{database_alias}'가 설정되지 않았습니다.")
         try:
-            snapshot = load_supabase_snapshot(os.getenv("SUPABASE_DATABASE_URL"))
+            source_url = os.getenv("SUPABASE_DATABASE_URL", "")
+            ensure_distinct_databases(source_url, database_alias)
+            snapshot = load_supabase_snapshot(source_url)
             report = verify_snapshot(snapshot, database_alias)
         except (MigrationValidationError, psycopg.Error, DatabaseError) as exc:
             raise CommandError(str(exc)) from exc
