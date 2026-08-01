@@ -186,3 +186,5 @@ Compose에는 일회성 `migrate` 서비스를 추가했다. API·Celery worker�
 `gemini-3.6-flash` 전환 뒤 두 번째 요청이 20초 read timeout에 걸리는 사례도 확인했다. 요청 제한을 `GEMINI_REQUEST_TIMEOUT_SECONDS` 환경 변수(기본 45초)로 분리했고, Gemini 성공 전에는 사용자 메시지를 저장하지 않도록 변경했다. 실패한 요청이 답변 없는 `user` turn으로 남아 다음 대화의 역할 순서를 깨뜨리지 않도록 질문·답변을 하나의 DB transaction에서 함께 저장한다.
 
 Toss 성공 콜백은 외부 결제창에서 `hakchelin.cloud/payment/success`로 새 페이지 이동을 만든다. Django 세션 쿠키는 `api.hakchelin.cloud` host-only 쿠키이므로 Vercel SSR은 이를 전달받지 못하고 전역 인증 middleware가 승인 전에 로그인 페이지로 redirect했다. 결제 콜백 경로를 client-only rendering으로 지정해 브라우저가 API 도메인 세션 쿠키와 CSRF 토큰을 포함해 승인 API를 호출하도록 수정했다.
+
+콜백 복구 뒤 Toss 승인 API가 API 키 인증 오류를 반환한 사례도 기록했다. Vercel의 브라우저용 client key와 Lightsail의 server-only secret key를 같은 테스트 상점(MID)의 `test_ck_`·`test_sk_` 쌍으로 맞춘 뒤, 주문 생성·결제창·승인·포인트 적립이 실제 운영 도메인에서 모두 성공했다. 라이브 결제는 Toss 계약 후 별도 `live_` 키 쌍으로 전환한다.
