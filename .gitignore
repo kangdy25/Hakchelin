@@ -23,6 +23,7 @@ logs
 .env.*
 !.env.example
 .vercel
+*.pem
 
 # Python / Django
 .venv
