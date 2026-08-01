@@ -13,7 +13,7 @@ curl --fail --silent --show-error --location --max-time 15 \
 read -r status redirect_target < <(
   curl --silent --show-error --max-time 15 \
     --output /dev/null \
-    --write-out '%{http_code} %{redirect_url}' \
+    --write-out '%{http_code} %{redirect_url}\n' \
     "$redirect_url"
 )
 

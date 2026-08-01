@@ -27,7 +27,7 @@ jobs:
           read -r status redirect_url < <(
             curl --silent --show-error --max-time 15 \
               --output /dev/null \
-              --write-out '%{http_code} %{redirect_url}' \
+              --write-out '%{http_code} %{redirect_url}\n' \
               https://www.hakchelin.cloud/
           )
           test "$status" = "308"

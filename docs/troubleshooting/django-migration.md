@@ -381,3 +381,21 @@ project domain API에서 `www`가 실제로 추가됐는지 재확인하고 redi
 ### 배운 점
 
 도메인 소유 검증, DNS routing, TLS 발급, HTTP redirect는 서로 다른 단계다. 한 화면의 초록색 상태만으로 완료를 판단하지 않고 실제 사용자 경로를 끝까지 요청해야 한다.
+
+## 운영 안정화 — curl 결과는 맞지만 Bash read가 실패한 문제
+
+### 증상
+
+GitHub Actions 외부 점검은 `Check canonical domain redirect` 단계에서 출력 없이 종료 코드 1을 반환했다. 동일 요청을 직접 확인하면 HTTP 308과 올바른 redirect URL이 반환됐다.
+
+### 원인
+
+process substitution의 `curl --write-out` 문자열 끝에 개행이 없었다. Bash `read`는 두 변수에 값을 정상 할당했지만 delimiter를 만나기 전에 EOF에 도달해 종료 코드 1을 반환한다. Actions shell의 `-e`가 이를 명령 실패로 처리해 다음 `test` 구문까지 실행되지 않았다.
+
+### 해결
+
+workflow와 저장소 검증 script의 `--write-out`에 `\n`을 추가했다. 이제 `read` 자체가 성공하고, 실제 status와 redirect target이 각각의 assertion에서 검증된다.
+
+### 배운 점
+
+셸 자동화에서는 출력 내용과 생산 명령의 종료 상태를 모두 봐야 한다. process substitution과 `set -e`를 함께 사용할 때 레코드 끝 delimiter가 없으면 값이 맞아도 파이프라인은 실패할 수 있다.
