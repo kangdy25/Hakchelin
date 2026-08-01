@@ -196,3 +196,11 @@ Neon 연결 문자열을 출력하지 않는 `pg_dump` 자동화와 일회용 Po
 2026-08-01 실제 Neon 논리 백업을 PostgreSQL 18 클라이언트로 생성하고 PostgreSQL 18 격리 컨테이너에 복원했다. checksum과 manifest 대조가 성공했으며 복원 결과는 사용자 23, 메뉴 17, 예약 32, 포인트 거래 94, 포인트 주문 56, 프롬프트 3, AI 로그 80, 대화 51건이었다. Django migration 이력과 음수 사용자 포인트가 없음도 함께 검증했다.
 
 첫 시도에서는 Neon 18.4에 PostgreSQL 17 `pg_dump`를 사용해 major version 불일치로 중단됐다. 도구를 PostgreSQL 18로 맞췄고, 실패한 dump가 완성본처럼 남지 않도록 `.partial` 파일에 생성한 뒤 검증 성공 시에만 최종 이름으로 원자적으로 이동하도록 개선했다. Alpine 이미지의 BusyBox `sha256sum`이 GNU 장문 옵션을 지원하지 않는 차이도 `-c` 옵션으로 교정했다.
+
+## 12. 운영 안정화 2 — 애플리케이션 컨테이너 권한 축소
+
+Django API와 Celery가 root로 실행되며 Celery의 `ROOT_DISCOURAGED` 경고가 발생하던 구성을 바꿨다. Dockerfile에 UID/GID 10001의 전용 `app` 사용자를 만들고, Compose에서도 동일 사용자를 강제해 다른 이미지 태그가 지정돼도 root로 돌아가지 않게 했다.
+
+API·migration·worker·beat에는 read-only 루트 파일시스템, 64MB `/tmp` tmpfs, 전체 Linux capability 제거, `no-new-privileges`, init process를 공통 적용했다. 영속 schedule 파일을 쓰는 Celery Beat만 schedule 위치를 `/tmp`로 명시했다. 이 제한은 애플리케이션 소스와 가상환경 변조 범위를 줄이고, 침해 시 컨테이너 권한 상승 가능성을 낮춘다.
+
+실제 production 이미지를 다시 빌드해 read-only·capability 제거·권한 상승 차단 옵션으로 실행했다. 컨테이너는 `uid=10001(app) gid=10001(app)`를 출력했고 같은 조건의 `python manage.py check`도 오류 없이 통과했다.
