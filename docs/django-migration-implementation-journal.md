@@ -180,3 +180,5 @@ Lightsail Seoul 인스턴스와 Static IP를 준비했다. API는 `api.hakchelin
 Compose에는 일회성 `migrate` 서비스를 추가했다. API·Celery worker·beat가 migration 성공을 의존하므로, 컨테이너가 동시에 기동하면서 DB schema가 준비되기 전에 요청을 처리하는 문제를 피한다. HTTPS redirect와 HSTS는 로컬 기본값에 섞지 않고 운영 환경 파일에서만 명시적으로 활성화한다. 실제 서버 명령, 환경 변수와 롤백 원칙은 [Lightsail 운영 배포 런북](./runbooks/lightsail-deployment.md)에 기록했다.
 
 첫 운영 기동에서는 API health check가 내부 `localhost`와 HTTP로 요청하는 반면, Django 운영 설정은 `api.hakchelin.cloud`만 허용하고 HTTPS redirect를 강제해 컨테이너가 unhealthy가 됐다. health check가 운영 `Host`와 `X-Forwarded-Proto: https` 헤더를 보내도록 수정해 외부 요청과 동일한 프록시 조건을 재현했다. 실제 배포에서는 Caddy가 Let's Encrypt 인증서를 발급했고 `https://api.hakchelin.cloud/healthz`가 `{"status": "ok"}`를 반환했다.
+
+운영 챗봇의 첫 요청은 Gemini API에서 `gemini-2.5-flash` 모델이 신규 사용자에게 더 이상 제공되지 않는다는 502 로그를 남겼다. 기본 모델과 서버 환경 예시를 `gemini-3.6-flash`로 교체하고, 최신 모델군에서 deprecate된 `temperature` 요청 파라미터를 제거했다. 모델명과 요청 payload를 검증하는 회귀 테스트를 추가해 이후 기본값 회귀를 방지한다.

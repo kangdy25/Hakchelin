@@ -1,11 +1,13 @@
 from datetime import timedelta
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import User
 from chatbot.models import ChatMessage
+from chatbot.services import generate_chat_answer
 from chatbot.tasks import delete_expired_chat_messages
 from meals.models import Menu
 from reservations.models import Reservation
@@ -193,6 +195,36 @@ def test_chat_sse_contract_and_conversation_isolation():
 
     history = client.get(f"/api/chat/{conversation_id}/")
     assert [item["role"] for item in history.json()] == ["user", "assistant"]
+
+
+@pytest.mark.django_db
+@override_settings(GEMINI_API_KEY="test-key", GEMINI_MODEL="gemini-3.6-flash")
+def test_chat_uses_supported_gemini_model_without_deprecated_sampling_parameters(monkeypatch):
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+    request_payload = {}
+
+    class GeminiResponse:
+        is_error = False
+
+        @staticmethod
+        def json():
+            return {"candidates": [{"content": {"parts": [{"text": "답변"}]}}]}
+
+    def fake_post(url, **kwargs):
+        request_payload["url"] = url
+        request_payload.update(kwargs)
+        return GeminiResponse()
+
+    monkeypatch.setattr("chatbot.services.httpx.post", fake_post)
+
+    assert generate_chat_answer(user=user, message="오늘 메뉴 알려줘", history=[]) == "답변"
+    assert request_payload["url"].endswith("/models/gemini-3.6-flash:generateContent")
+    assert "generationConfig" not in request_payload["json"]
 
 
 @pytest.mark.django_db

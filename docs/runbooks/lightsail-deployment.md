@@ -49,7 +49,7 @@ CELERY_BROKER_URL=redis://redis:6379/0
 CELERY_RESULT_BACKEND=redis://redis:6379/1
 TOSS_PAYMENTS_SECRET_KEY=<production key>
 GEMINI_API_KEY=<production key>
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
 ```bash
