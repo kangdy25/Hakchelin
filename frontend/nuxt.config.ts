@@ -31,6 +31,13 @@ export default defineNuxtConfig({
     }
   },
 
+  // Toss는 외부 결제 페이지에서 success/fail URL로 브라우저를 새로 이동시킨다.
+  // Django 세션은 api.hakchelin.cloud 전용 쿠키라 Vercel SSR에는 전달되지 않으므로,
+  // 콜백은 브라우저에서만 인증·승인 API를 호출하게 한다.
+  routeRules: {
+    "/payment/**": { ssr: false }
+  },
+
   runtimeConfig: {
     public: {
       tossPaymentsClientKey: process.env.NUXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY || "",
