@@ -28,12 +28,14 @@ INSTALLED_APPS = [
     "wallet",
     "payments",
     "chatbot",
+    "migration_tools",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "config.middleware.WriteBlockMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -57,7 +59,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 database_url = os.getenv("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 if "pytest" in sys.modules or any("pytest" in argument for argument in sys.argv):
-    database_url = "sqlite:///:memory:"
+    database_url = os.getenv("TEST_DATABASE_URL") or "sqlite:///:memory:"
 
 DATABASES = {
     "default": dj_database_url.parse(
@@ -65,6 +67,14 @@ DATABASES = {
         conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", "0")),
     )
 }
+
+if neon_database_url := os.getenv("NEON_DATABASE_URL"):
+    DATABASES["neon"] = dj_database_url.parse(
+        neon_database_url,
+        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", "0")),
+    )
+
+DJANGO_WRITE_BLOCKED = os.getenv("DJANGO_WRITE_BLOCKED", "false").lower() == "true"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

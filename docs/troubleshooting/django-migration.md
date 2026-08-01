@@ -181,3 +181,83 @@ Supabase `pg_cron`이 담당하던 노쇼 처리는 Celery Beat 15분 작업으�
 Nuxt의 인증·메뉴·예약·포인트·관리자·챗봇 코드는 모두 생성 OpenAPI 클라이언트 패키지를 통해 Django `/api/`을 사용한다. `@nuxtjs/supabase`, Supabase CLI 패키지, 생성 DB 타입과 직접 `.from()`·`.rpc()`·Edge Function 호출은 프런트와 lockfile에서 제거했다.
 
 `supabase/` 디렉터리는 Neon 데이터 이관과 장애 복구 대조를 위한 legacy 원본으로만 남겨 두며 런타임에서는 사용하지 않는다. 외부 기능을 실제로 사용하려면 로컬 `.env`에 `TOSS_PAYMENTS_SECRET_KEY`, `GEMINI_API_KEY`를 설정해야 한다.
+
+## 4단계 — SQLite 테스트만으로 행 잠금을 검증할 수 없던 문제
+
+### 문제
+
+서비스 단위 테스트는 통과했지만 기본 테스트 DB인 SQLite는 `select_for_update()`를 실제 행 잠금으로 실행하지 않는다. 따라서 동시에 두 예약이 정원 검사를 통과하거나 동일 결제가 두 번 적립되는 회귀를 잡을 수 없었다.
+
+### 해결
+
+CI backend job에 PostgreSQL 17 서비스를 추가하고 `TEST_DATABASE_URL`이 있으면 Django 테스트 DB를 PostgreSQL로 만들도록 설정했다. 두 개의 독립 DB 연결과 barrier를 사용하는 스레드 테스트로 정원 1개 메뉴의 동시 예약과 동일 주문의 동시 결제를 실행했다. 로컬에서도 일회용 PostgreSQL 17 컨테이너로 전체 20개 테스트를 실행해 모두 통과함을 확인했다.
+
+### 배운 점
+
+트랜잭션 코드는 데이터베이스 엔진의 의미론에 의존한다. SQLite 테스트는 빠른 회귀 검사용으로 유용하지만 행 잠금·부분 unique index·동시성 보장은 실제 운영 계열 PostgreSQL에서 별도로 검증해야 한다.
+
+## 4단계 — Supabase 사용자 데이터가 두 스키마에 나뉜 문제
+
+### 문제
+
+`public.users`만 이관하면 Django 로그인 식별자인 이메일이 없고, `auth.users`만 이관하면 역할·학번·이름·포인트가 없다. 두 테이블 중 일부만 존재하는 계정까지 임의의 기본값으로 채우면 사용자 UUID는 보존되더라도 계정 의미가 달라진다.
+
+### 해결
+
+원본을 read-only 트랜잭션으로 읽으며 두 테이블을 UUID로 결합했다. 프로필만 있는 행, 프로필 없는 이메일 계정, 이메일 없는 프로필의 개수를 먼저 검사하고 하나라도 있으면 ETL을 중단한다. 정상 계정은 Supabase UUID를 Django PK로 그대로 사용하고 최초 이관 시 unusable password를 설정한다.
+
+### 배운 점
+
+데이터 마이그레이션에서 누락 값을 조용히 보정하는 것보다 원본 무결성 오류를 명시적으로 드러내는 편이 안전하다. 특히 인증 데이터는 자동 추측보다 운영자가 예외 계정을 확인할 수 있는 실패 보고가 필요하다.
+
+## 4단계 — Neon pooler와 advisory lock 수명
+
+### 문제
+
+ETL 중복 실행을 막기 위해 세션 advisory lock을 사용하면 transaction pooler가 연결을 반환한 뒤 잠금이 예상과 다른 세션에 남을 수 있다.
+
+### 해결
+
+ETL 전체를 하나의 대상 트랜잭션으로 묶고 `pg_try_advisory_xact_lock`을 사용했다. 잠금은 트랜잭션 종료와 함께 자동 해제되고, dry-run은 같은 트랜잭션을 rollback한다.
+
+### 배운 점
+
+연결 pooler를 사용하는 환경에서는 애플리케이션 요청과 데이터베이스 세션이 항상 1:1이 아니다. 세션 상태에 의존하는 기능은 트랜잭션 범위 기능으로 바꾸거나 direct 연결을 사용해야 한다.
+
+## 4단계 — 실행 환경에서 uv 캐시와 Supabase CLI가 보이지 않은 문제
+
+Codex 샌드박스는 사용자 전역 `~/.cache/uv`와 interactive shell의 Supabase CLI 경로를 그대로 사용할 수 없었다. uv 검증은 쓰기 가능한 `/tmp/hakchelin-uv-cache`를 `UV_CACHE_DIR`로 지정해 해결했다. 데이터 이관은 CLI 로그인 상태에 의존하지 않고 `SUPABASE_DATABASE_URL`을 명시적으로 받는 Django 명령으로 구현해, 로컬·CI·점검 창에서 같은 실행 경로를 사용하도록 했다.
+
+## 4단계 — Supabase direct DB 호스트를 해석하지 못한 문제
+
+### 증상
+
+`SUPABASE_DATABASE_URL`에 `db.<project-ref>.supabase.co` 형태의 direct 연결 문자열을 넣고 dry-run을 실행했지만, 비밀번호 인증 전 단계에서 호스트 이름을 해석하지 못했다.
+
+### 원인
+
+Supabase direct connection은 IPv6 경로를 사용한다. 실행 환경이나 네트워크가 IPv4 중심이면 direct 주소를 사용할 수 없고, 프로젝트가 제공하는 Supavisor pooler 경로가 필요하다.
+
+### 해결
+
+Supabase Dashboard의 Connect 화면에서 Session pooler 연결 문자열을 선택한다. 트랜잭션 중 여러 원본 조회를 같은 세션에서 수행하므로 transaction pooler 대신 포트 5432의 session pooler를 사용한다. 비밀번호에 URL 예약 문자가 있으면 percent-encoding한 문자열을 `.env`에 저장한다.
+
+초기 구현은 잘못된 포트 문자열에서 발생한 `ValueError`를 잡지 못했고, command 테스트도 개발자의 실제 `.env`를 상속했다. URL 파싱 오류를 비밀값 없는 `CommandError`로 변환하고, command 테스트에는 항상 가짜 `SUPABASE_DATABASE_URL`을 주입해 로컬 자격 증명과 완전히 격리했다. 진단 로그에 노출 가능성이 생긴 DB 비밀번호는 즉시 폐기·재설정했다.
+
+### 배운 점
+
+데이터베이스 연결 검증은 비밀번호만 확인해서는 부족하다. DNS, IP 버전, pooler 모드, 사용자 이름 형식을 별도 계층으로 나눠 진단해야 인증 오류와 네트워크 오류를 혼동하지 않는다.
+
+## 4단계 — 원격 행 단위 ETL의 왕복 지연
+
+### 증상
+
+302건의 작은 데이터셋인데도 Neon dry-run에 약 3분이 걸렸다. 출력이 없는 동안 동일 명령을 다시 실행했지만 트랜잭션 advisory lock이 두 번째 실행을 정상 거부했다.
+
+### 원인
+
+안전한 멱등성을 우선해 각 행을 `update_or_create`하고 생성·수정 시각을 별도 보존했다. 이 과정에서 행마다 조회, savepoint, 저장, timestamp 갱신이 발생해 원격 DB 왕복 횟수가 데이터 건수보다 훨씬 많아졌다.
+
+### 판단
+
+현재 운영 원본 302건은 30분 점검 창 안에 충분히 처리되며, dry-run과 실제 스테이징 이관에서 전체 유효성·외래키·대상 제약을 통과했다. 명령 내부 대조에 이어 별도 검증 명령을 실행해 PK 집합, 포인트 총합 2,246,000점, 예약·주문 상태별 수량이 다시 일치함을 확인했다. 데이터가 수천 건 이상으로 늘어나면 stage별 `bulk_create(update_conflicts=True)`와 사전 unique 검증으로 바꾸되, 사용자 비밀번호 보존과 프롬프트 부분 unique 제약을 별도 처리해야 한다.

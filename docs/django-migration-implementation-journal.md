@@ -16,6 +16,7 @@
 | 트러블슈팅 문서화 | [#4](https://github.com/kangdy25/Hakchelin/pull/4) | 1~3단계의 빌드·인증·트랜잭션 문제 기록 |
 | 프런트 읽기 연동 | [#5](https://github.com/kangdy25/Hakchelin/pull/5) | 메뉴·프로필·예약·거래 이력을 Django 생성 클라이언트로 우선 전환 |
 | 로컬 Django REST 컷오버 | [#6](https://github.com/kangdy25/Hakchelin/pull/6) | 인증·읽기·쓰기·관리자·결제·챗봇·정기 작업을 Django로 전환하고 프런트 Supabase 런타임 제거 |
+| Neon 컷오버 기반 | 진행 중 | Neon 스키마, 멱등 ETL, 자동 대조, 쓰기 차단, PostgreSQL 동시성 검증 구현 |
 
 각 단계는 `codex/` 브랜치에서 한국어 Conventional Commit으로 작업했고, CI 통과 후 merge commit으로 병합했다.
 
@@ -143,12 +144,30 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 
 로컬 API 전환은 완료됐지만 운영 마이그레이션은 아직 끝나지 않았다.
 
-1. Neon에 최종 Django migration을 적용하고 idempotent ETL을 작성한다.
-2. 사용자 UUID, 포인트 합계, 예약·거래·AI 데이터 수량을 자동 대조한다.
-3. PostgreSQL 환경에서 동시 예약·정원 초과·행 잠금 통합 테스트를 실행한다.
-4. 기존 Supabase Auth 사용자는 unusable password로 이관하고 Resend 재설정 메일을 발송한다.
-5. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
-6. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
-7. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
+1. 기존 Supabase Auth 사용자에게 Resend 비밀번호 재설정 메일을 발송한다.
+2. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
+3. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
+4. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
 
 Supabase SQL과 Edge Function 파일은 이 단계가 끝날 때까지 ETL 원본과 복구 대조 자료로 보존한다.
+
+## 9. 4단계 — Neon 컷오버 기반 구현
+
+Supabase Auth와 public 스키마를 함께 읽는 `migrate_supabase_data` 명령을 추가했다. 이메일은 `auth.users`, 역할·학번·이름·포인트는 `public.users`에서 결합하며 프로필이 없는 이메일 계정, Auth 원본이 없는 프로필, 이메일 없는 프로필이 발견되면 이관을 시작하지 않는다.
+
+ETL은 사용자→메뉴→예약→거래·주문→AI 데이터 순으로 실행한다. 원본 UUID와 문자열 메뉴 PK, 생성·수정 시각을 보존하고, null을 허용했던 legacy 설명·JSON 필드는 Django 모델의 기본값에 맞게 정규화한다. 최초 이관 계정만 unusable password로 만들고 재실행 시 이미 설정된 Django 비밀번호는 유지한다.
+
+`verify_supabase_migration`은 다음 결과를 자동 대조한다.
+
+- 8개 도메인 모델의 레코드 수와 PK 집합
+- 사용자별 포인트와 전체 포인트 합계
+- 예약·충전 주문 상태별 수량
+- 정원·중복 식사·결제 멱등성·AI 조회에 필요한 인덱스와 제약 조건
+
+점검 창에는 `DJANGO_WRITE_BLOCKED=true`로 `/api/` 상태 변경 요청을 503으로 차단한다. 읽기와 health check는 유지되므로 사용자 안내 화면과 운영 관측은 계속 가능하다.
+
+GitHub Actions의 backend job에는 PostgreSQL 17 서비스를 추가했다. SQLite 테스트는 빠른 기본 검증으로 남기고, CI에서는 실제 PostgreSQL의 `select_for_update`를 사용해 정원 1개에 대한 동시 예약 두 건 중 한 건만 성공하는지, 동일 주문 동시 승인에서도 충전 거래가 한 건만 생기는지를 확인한다. 로컬 임시 PostgreSQL 17에서도 전체 20개 테스트가 통과했다.
+
+Neon 스테이징에는 Django migration 전체를 적용했고 실제 생성된 인덱스·제약 조건이 자동 대조 목록과 일치함을 확인했다. Supabase Session pooler를 통한 dry-run에서는 사용자 22, 메뉴 17, 예약 32, 거래 93, 주문 52, 프롬프트 3, AI 로그 61, 대화 22건 등 총 302건이 유효성·외래키·대상 제약을 통과했으며 대상 쓰기는 모두 롤백됐다.
+
+이후 같은 원본으로 실제 스테이징 ETL을 실행했고 명령 내부 자동 대조와 별도 `verify_supabase_migration` 재검증이 모두 `ok: true`를 반환했다. 8개 테이블의 누락·추가 PK는 0건이었고 사용자 포인트 총합은 원본·대상 모두 2,246,000점이었다. 예약 상태는 노쇼 17·사용 3·취소 12건, 충전 주문은 대기 43·결제 완료 9건으로 일치했으며 필수 인덱스와 unique 제약도 모두 확인했다.
