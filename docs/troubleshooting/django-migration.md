@@ -182,102 +182,6 @@ Nuxt의 인증·메뉴·예약·포인트·관리자·챗봇 코드는 모두 �
 
 `supabase/` 디렉터리는 Neon 데이터 이관과 장애 복구 대조를 위한 legacy 원본으로만 남겨 두며 런타임에서는 사용하지 않는다. 외부 기능을 실제로 사용하려면 로컬 `.env`에 `TOSS_PAYMENTS_SECRET_KEY`, `GEMINI_API_KEY`를 설정해야 한다.
 
-## 5단계 — Lightsail SSH 키 권한 때문에 초기 접속이 거부된 문제
-
-### 증상
-
-새 Lightsail 인스턴스가 Running 상태이고 네트워크도 응답했지만, SSH는 `UNPROTECTED PRIVATE KEY FILE` 뒤에 `Permission denied (publickey)`로 실패했다.
-
-### 원인
-
-내려받은 `.pem` 파일 권한이 `0644`였다. OpenSSH는 다른 로컬 사용자가 개인 키를 읽을 수 있는 경우 해당 키를 무시한다.
-
-### 해결
-
-키 파일 권한을 소유자 전용 읽기/쓰기로 제한했다.
-
-```bash
-chmod 600 LightsailDefaultKey-ap-northeast-2.pem
-```
-
-또한 `*.pem`을 `.gitignore`에 등록해 개인 키가 Git 인덱스에 들어가지 않게 했다.
-
-### 배운 점
-
-인프라 접근 문제는 서버의 보안 그룹·IP만이 아니라, 클라이언트 키의 파일 권한까지 함께 점검해야 한다. 키를 전달하거나 커밋하는 대신 파일 경로만 공유하고, 최소 권한을 먼저 적용하는 것이 안전하다.
-
-## 5단계 — 운영 보안 설정이 Docker health check를 실패시킨 문제
-
-### 증상
-
-Caddy 인증서 발급과 Django migration은 성공했지만 `api` 컨테이너가 약 90초 뒤 unhealthy가 됐다. Caddy는 API health check 성공에 의존하므로 시작하지 않았고 외부 HTTPS 요청은 연결 거부를 반환했다.
-
-### 원인
-
-health check는 `http://localhost:8000/healthz`를 호출했다. 운영 Django는 `api.hakchelin.cloud`만 `ALLOWED_HOSTS`에 허용하고 `SECURE_SSL_REDIRECT=true`를 사용하므로, 내부 요청은 Host 검증에서 400이 되거나 HTTPS로 redirect된 뒤 TLS가 없는 Gunicorn 포트에서 실패했다.
-
-### 해결
-
-장애 복구 중에는 `localhost`를 허용하고 Django의 중복 SSL redirect를 잠시 꺼 API와 Caddy를 정상화했다. 영구 수정에서는 health check가 환경 변수의 첫 번째 운영 host를 `Host` 헤더로 보내고, Caddy 뒤의 HTTPS 요청과 동일하게 `X-Forwarded-Proto: https`를 지정하도록 바꿨다. 이후 Django의 HTTPS redirect를 유지하면서도 내부 점검은 200 응답을 받는다.
-
-### 배운 점
-
-컨테이너 health check도 운영 보안 middleware를 통과하는 실제 HTTP 요청이다. proxy에서 TLS를 종료하는 구조에서는 단순히 포트가 열렸는지만 볼 것이 아니라 Host와 원본 프로토콜 헤더까지 운영 요청과 일치시켜야 한다.
-
-## 5단계 — Gemini 기본 모델이 신규 프로젝트에서 거절된 문제
-
-### 증상
-
-챗봇 SSE 요청은 HTTP 200으로 완료됐지만 화면에는 정상 답변 대신 오류가 표시됐다. `AiLog`에는 502와 함께 `gemini-2.5-flash`가 신규 사용자에게 더 이상 제공되지 않는다는 Gemini API 오류가 기록됐다.
-
-### 원인
-
-초기 구현의 기본 모델 `gemini-2.5-flash`는 기존 API 키에서는 사용할 수 있어도 신규 Gemini 사용자에게는 제공되지 않았다. 또한 최신 Gemini 모델군은 `temperature` 같은 샘플링 파라미터를 deprecated 처리했다.
-
-### 해결
-
-Google이 2.5 Flash의 권장 대체로 제시한 `gemini-3.6-flash`를 기본 모델·운영 런북·환경 변수 예시에 반영했다. 요청에서는 `generationConfig.temperature`를 제거했고, 지원 모델 URL과 deprecated 파라미터 부재를 자동 테스트로 검증했다.
-
-### 배운 점
-
-외부 AI 모델은 API 키만 설정하면 끝나는 고정 의존성이 아니다. 모델 lifecycle과 API 변경을 배포 환경 변수로 관리하고, 실제 provider 오류를 구조화된 로그로 남겨야 원인을 빠르게 분리할 수 있다.
-
-## 5단계 — Gemini timeout이 다음 대화 이력까지 오염시킨 문제
-
-### 증상
-
-첫 챗봇 질문은 정상 응답했지만 두 번째 질문은 SSE 오류가 됐다. `AiLog`에는 `The read operation timed out`가 기록됐고, 이후 질문은 답변이 없는 사용자 메시지까지 이력으로 포함할 수 있었다.
-
-### 원인
-
-Gemini 요청 timeout이 20초로 고정돼 최신 모델의 응답 지연을 충분히 허용하지 못했다. 또한 view가 Gemini 호출 전에 사용자 메시지를 저장하므로, timeout 뒤에는 `user` 역할만 남아 이후 Gemini 요청의 대화 역할 순서가 불안정해졌다.
-
-### 해결
-
-timeout을 기본 45초의 환경 변수로 분리해 운영 상황에 맞게 조정할 수 있게 했다. Gemini가 답변을 성공적으로 만든 뒤에만 사용자 메시지와 assistant 답변을 같은 transaction에 저장하고, 실패한 turn은 이력에 남기지 않도록 테스트를 추가했다.
-
-### 배운 점
-
-외부 API 실패는 현재 요청 하나로 끝나지 않는다. 대화처럼 이전 상태를 다음 요청에 재사용하는 기능에서는 실패한 상태를 영속화하지 않거나 명시적으로 복구해야 오류가 연쇄되지 않는다.
-
-## 5단계 — Toss 성공 콜백에서 Vercel SSR이 세션을 잃은 문제
-
-### 증상
-
-Toss 결제 완료 뒤 포인트가 적립되지 않고 사용자가 로그인 화면으로 이동했다. 서버 로그에는 충전 주문 생성만 있고 Toss 승인 API 호출은 없었다.
-
-### 원인
-
-Django `sessionid`는 `api.hakchelin.cloud` host-only 쿠키다. Toss가 `hakchelin.cloud/payment/success`로 브라우저를 새로 이동시키자 Vercel SSR은 API 전용 쿠키를 받을 수 없었다. 전역 인증 middleware가 SSR에서 미인증으로 판단해, `onMounted`의 결제 승인 요청보다 먼저 `/login`으로 redirect했다.
-
-### 해결
-
-`/payment/**`를 Nuxt client-only route로 지정했다. 결제 콜백은 브라우저에서 렌더링되고, 브라우저의 `credentials: include` API 호출이 API 도메인의 세션 쿠키를 전달해 Toss 승인과 포인트 적립을 이어갈 수 있다. 세션 쿠키 범위를 루트 도메인으로 넓히지 않아 기존 host-only 격리를 유지한다.
-
-### 배운 점
-
-서드파티 리다이렉트 뒤에는 SSR 서버가 브라우저와 같은 쿠키를 보지 못할 수 있다. 인증 상태를 API subdomain에 분리한 구조에서는 콜백의 실행 위치(SSR·CSR)를 설계의 일부로 다뤄야 한다.
-
 ## 4단계 — SQLite 테스트만으로 행 잠금을 검증할 수 없던 문제
 
 ### 문제
@@ -357,3 +261,29 @@ Supabase Dashboard의 Connect 화면에서 Session pooler 연결 문자열을 �
 ### 판단
 
 현재 운영 원본 302건은 30분 점검 창 안에 충분히 처리되며, dry-run과 실제 스테이징 이관에서 전체 유효성·외래키·대상 제약을 통과했다. 명령 내부 대조에 이어 별도 검증 명령을 실행해 PK 집합, 포인트 총합 2,246,000점, 예약·주문 상태별 수량이 다시 일치함을 확인했다. 데이터가 수천 건 이상으로 늘어나면 stage별 `bulk_create(update_conflicts=True)`와 사전 unique 검증으로 바꾸되, 사용자 비밀번호 보존과 프롬프트 부분 unique 제약을 별도 처리해야 한다.
+
+## 5단계 — Lightsail·도메인 운영 전환
+
+### SSH 키 권한 때문에 초기 접속이 거부된 문제
+
+새 Lightsail 인스턴스는 Running 상태였지만, `.pem` 파일 권한이 `0644`라 OpenSSH가 `UNPROTECTED PRIVATE KEY FILE`로 키를 무시했다. `chmod 600 LightsailDefaultKey-ap-northeast-2.pem`으로 소유자 전용 권한을 적용하고 `*.pem`을 Git ignore에 추가했다. 인프라 접근 문제는 보안 그룹뿐 아니라 로컬 개인 키 권한도 함께 점검해야 한다.
+
+### 운영 보안 설정이 Docker health check를 실패시킨 문제
+
+Caddy 인증서 발급과 migration은 성공했지만 API health check가 `localhost` HTTP 요청을 보내며 Django의 `ALLOWED_HOSTS`와 HTTPS redirect에 걸려 unhealthy가 됐다. health check가 환경 변수의 운영 Host와 `X-Forwarded-Proto: https`를 보내도록 수정해, 실제 프록시 요청과 같은 조건에서 점검한다. 컨테이너 health check도 운영 middleware를 통과하는 HTTP 요청으로 설계해야 한다.
+
+### Gemini 기본 모델이 신규 프로젝트에서 거절된 문제
+
+챗봇 SSE는 HTTP 200이었지만 `AiLog`에는 `gemini-2.5-flash`가 신규 사용자에게 제공되지 않는다는 502가 남았다. 권장 대체 모델 `gemini-3.6-flash`로 기본값·런북·환경 예시를 교체하고 최신 모델에서 deprecated된 `temperature` 파라미터를 제거했다. 외부 AI 모델의 lifecycle은 운영 환경 변수와 구조화된 로그로 관리해야 한다.
+
+### Gemini timeout이 다음 대화 이력까지 오염시킨 문제
+
+두 번째 챗봇 요청이 20초 read timeout으로 실패한 뒤, 답변 없는 사용자 메시지가 DB 이력에 남아 이후 대화 역할 순서를 깨뜨릴 수 있었다. timeout을 기본 45초의 `GEMINI_REQUEST_TIMEOUT_SECONDS`로 분리하고, Gemini 성공 뒤에만 user·assistant 메시지를 하나의 transaction으로 저장했다. 외부 API 실패는 다음 요청에서 재사용되는 상태까지 복구해야 한다.
+
+### Toss 성공 콜백에서 Vercel SSR이 세션을 잃은 문제
+
+Toss 성공 URL로 새 페이지 이동이 일어나면 Vercel SSR은 `api.hakchelin.cloud` host-only Django 세션 쿠키를 받지 못했다. 전역 middleware가 승인 요청보다 먼저 로그인 페이지로 redirect해 포인트가 적립되지 않았다. `/payment/**`를 Nuxt client-only route로 지정해 브라우저가 API 세션·CSRF 쿠키를 포함해 승인 API를 호출하도록 바꿨다. 서드파티 콜백은 SSR과 브라우저가 보는 인증 상태 차이를 고려해야 한다.
+
+### Toss API 키가 서로 다른 환경·상점에서 섞인 문제
+
+콜백 경로를 고친 뒤에는 Toss 승인 API가 `인증되지 않은 시크릿 키 혹은 클라이언트 키`를 반환했다. 결제창의 클라이언트 키와 서버의 시크릿 키가 test/live 환경 또는 서로 다른 상점(MID)에서 발급된 조합이면 `INVALID_API_KEY`가 발생한다. 브라우저에는 같은 MID의 `test_ck_`를 Vercel 환경 변수로, 서버에는 짝이 되는 `test_sk_`를 `/etc/hakchelin/backend.env`로 설정해 테스트 결제와 포인트 적립을 확인했다. 키의 prefix와 MID를 점검하되 시크릿 원문은 로그·채팅·저장소에 남기지 않는다.
