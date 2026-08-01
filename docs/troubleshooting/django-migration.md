@@ -224,6 +224,24 @@ health check는 `http://localhost:8000/healthz`를 호출했다. 운영 Django�
 
 컨테이너 health check도 운영 보안 middleware를 통과하는 실제 HTTP 요청이다. proxy에서 TLS를 종료하는 구조에서는 단순히 포트가 열렸는지만 볼 것이 아니라 Host와 원본 프로토콜 헤더까지 운영 요청과 일치시켜야 한다.
 
+## 5단계 — Gemini 기본 모델이 신규 프로젝트에서 거절된 문제
+
+### 증상
+
+챗봇 SSE 요청은 HTTP 200으로 완료됐지만 화면에는 정상 답변 대신 오류가 표시됐다. `AiLog`에는 502와 함께 `gemini-2.5-flash`가 신규 사용자에게 더 이상 제공되지 않는다는 Gemini API 오류가 기록됐다.
+
+### 원인
+
+초기 구현의 기본 모델 `gemini-2.5-flash`는 기존 API 키에서는 사용할 수 있어도 신규 Gemini 사용자에게는 제공되지 않았다. 또한 최신 Gemini 모델군은 `temperature` 같은 샘플링 파라미터를 deprecated 처리했다.
+
+### 해결
+
+Google이 2.5 Flash의 권장 대체로 제시한 `gemini-3.6-flash`를 기본 모델·운영 런북·환경 변수 예시에 반영했다. 요청에서는 `generationConfig.temperature`를 제거했고, 지원 모델 URL과 deprecated 파라미터 부재를 자동 테스트로 검증했다.
+
+### 배운 점
+
+외부 AI 모델은 API 키만 설정하면 끝나는 고정 의존성이 아니다. 모델 lifecycle과 API 변경을 배포 환경 변수로 관리하고, 실제 provider 오류를 구조화된 로그로 남겨야 원인을 빠르게 분리할 수 있다.
+
 ## 4단계 — SQLite 테스트만으로 행 잠금을 검증할 수 없던 문제
 
 ### 문제

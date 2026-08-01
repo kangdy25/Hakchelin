@@ -151,7 +151,7 @@ TOSS_PAYMENTS_CONFIRM_URL = os.getenv(
     "https://api.tosspayments.com/v1/payments/confirm",
 )
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 if not DEBUG:
     SESSION_COOKIE_SECURE = True

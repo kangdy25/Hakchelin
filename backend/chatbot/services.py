@@ -62,7 +62,6 @@ def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
             json={
                 "systemInstruction": {"parts": [{"text": prompt}]},
                 "contents": contents,
-                "generationConfig": {"temperature": 0.2},
             },
             timeout=20,
         )
