@@ -24,6 +24,10 @@ logs
 !.env.example
 .vercel
 *.pem
+*.dump
+*.dump.sha256
+*.manifest.json
+backups/
 
 # Python / Django
 .venv
