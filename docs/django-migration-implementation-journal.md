@@ -232,3 +232,5 @@ Vercel Hakchelin project에 `www.hakchelin.cloud`를 추가하고 `hakchelin.clo
 외부 모니터링에는 `www`의 상태 코드와 정확한 redirect target 검증을 추가했다. redirect가 해제되거나 임시 상태 코드·잘못된 host로 바뀌면 정기 `Production health` workflow가 실패한다. DNS·TLS 전파 후 같은 계약을 로컬에서 확인하는 script와 도메인 운영 런북도 함께 추가했다.
 
 가비아 CNAME 추가 뒤 public DNS에서 `79c72787ec396ec2.vercel-dns-017.com`을 확인했고 Vercel config도 `misconfigured: false`로 전환됐다. Vercel edge에서 `www.hakchelin.cloud` 인증서 검증이 성공했으며 HTTP/2 308과 `Location: https://hakchelin.cloud/`이 정확히 반환됐다. 로컬 macOS resolver에는 추가 전 NXDOMAIN이 잠시 남았지만 authoritative/public DNS와 실제 edge 요청은 모두 정상이라 TTL 만료 뒤 자연 해소되는 상태로 판단했다.
+
+최초 외부 `Production health` 실행은 DNS·TLS가 아니라 redirect 값을 받는 Bash `read`에서 실패했다. `curl --write-out` 결과에 마지막 개행이 없어 값은 채워졌지만 EOF로 `read`가 종료 코드 1을 반환했고 `bash -e`가 assertion 전에 중단했다. workflow와 로컬 검증 script의 출력에 명시적인 개행을 넣어 같은 `308`·target 계약을 안정적으로 검사하도록 보완했다.
