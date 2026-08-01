@@ -65,6 +65,8 @@ sudo chmod 600 /etc/hakchelin/compose.env
 
 ## 3. 배포와 확인
 
+초기 배포 이후에는 [자동 배포 런북](./automated-deployment.md)을 사용한다. 아래 수동 절차는 최초 기동과 자동 배포 장애 복구용이다.
+
 ```bash
 cd /opt/hakchelin
 git fetch origin
@@ -88,7 +90,7 @@ sudo docker compose --env-file /etc/hakchelin/compose.env -f infra/lightsail/doc
 1. 브라우저에서 회원가입·로그인 뒤 `api.hakchelin.cloud`의 `sessionid`는 HttpOnly·Secure, `csrftoken`은 `.hakchelin.cloud` 범위인지 확인한다.
 2. 예약·취소와 관리자 API 변경 요청이 CSRF 헤더 없이 403, 정상 웹 요청에서는 성공하는지 확인한다.
 3. `/healthz`, `/api/schema/`, 챗봇 SSE, Celery Beat 로그를 점검한다.
-4. 문제가 있으면 이전 main 커밋을 checkout해 같은 `docker compose up -d --build`를 실행한다. DB migration은 되돌리지 않으며, 데이터 복원은 검증된 Neon 백업 절차로만 수행한다.
+4. 문제가 있으면 이전 검증된 SHA image를 [자동 배포 런북](./automated-deployment.md)의 절차로 다시 기동한다. DB migration은 되돌리지 않으며, 데이터 복원은 검증된 Neon 백업 절차로만 수행한다.
 
 Supabase Auth/RLS/RPC/Edge Function 삭제는 운영 검증 및 백업 복원 리허설이 끝난 뒤 별도 승인으로 수행한다.
 

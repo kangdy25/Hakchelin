@@ -329,3 +329,19 @@ Compose 서비스가 Docker 기본 `json-file` 로그를 사용하면서 크기�
 ### 배운 점
 
 health endpoint 하나는 프로세스 바깥의 DNS·TLS 상태를 보여 주지만 worker와 디스크 상태는 설명하지 못한다. 외부 사용자 경로와 서버 내부 의존성을 각각 관측하고 같은 런북에서 연결해야 장애 원인을 빠르게 좁힐 수 있다.
+
+## 운영 안정화 — 공개 저장소와 production self-hosted runner의 신뢰 경계
+
+### 문제
+
+Lightsail에 GitHub self-hosted runner를 설치하면 SSH 없이 배포하기 쉽지만, 공개 저장소의 workflow와 PR 입력을 처리하는 runner가 운영 서버·Docker socket·환경 파일 가까이 놓인다. workflow 구성 실수 하나가 신뢰하지 않은 코드를 운영 호스트에서 실행하게 만들 수 있다.
+
+### 해결
+
+GitHub-hosted runner는 main CI 성공 뒤 비밀값 없는 Django image만 GHCR에 발행한다. Lightsail은 inbound 배포 연결이나 GitHub 장기 token 없이 공개 image의 불변 SHA tag만 pull한다. 서버 측 script도 clean main fast-forward, 단일 배포 lock, health 검증, 이전 image 복구, 실패 SHA 재시도 차단을 적용했다.
+
+로컬 가드 테스트에서는 macOS에 `flock`이 없어 command-not-found가 발생했지만 `if ! flock` 분기가 이를 다른 배포가 진행 중인 상태로 오인했다. 필수 실행 파일을 시작 전에 명시적으로 검사하고 없으면 종료 코드 69로 실패하도록 보완했으며 Ubuntu 준비 절차에 `util-linux`를 포함했다.
+
+### 배운 점
+
+CI/CD 자동화는 명령 횟수만 줄이는 일이 아니라 신뢰 경계를 정하는 일이다. 공개 기여 경로와 운영 자격 증명을 같은 runner에 두지 않고, 검증 산출물만 경계를 통과시키면 자동화와 격리를 함께 얻을 수 있다.
