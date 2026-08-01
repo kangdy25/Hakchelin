@@ -2,6 +2,8 @@
 
 이 문서는 `hakchelin.cloud`의 Django API를 Lightsail에 안전하게 올리는 절차다. 프런트는 Vercel, API는 `api.hakchelin.cloud`, 데이터베이스는 Neon을 사용한다.
 
+전체 DNS와 canonical redirect 구성은 [도메인 라우팅 런북](./domain-routing.md)을 따른다.
+
 ## 1. 배포 전제
 
 - Lightsail 인스턴스: Seoul, Ubuntu 24.04, 최소 2GB RAM, Static IP 연결
