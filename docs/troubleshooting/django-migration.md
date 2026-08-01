@@ -260,6 +260,24 @@ timeout을 기본 45초의 환경 변수로 분리해 운영 상황에 맞게 �
 
 외부 API 실패는 현재 요청 하나로 끝나지 않는다. 대화처럼 이전 상태를 다음 요청에 재사용하는 기능에서는 실패한 상태를 영속화하지 않거나 명시적으로 복구해야 오류가 연쇄되지 않는다.
 
+## 5단계 — Toss 성공 콜백에서 Vercel SSR이 세션을 잃은 문제
+
+### 증상
+
+Toss 결제 완료 뒤 포인트가 적립되지 않고 사용자가 로그인 화면으로 이동했다. 서버 로그에는 충전 주문 생성만 있고 Toss 승인 API 호출은 없었다.
+
+### 원인
+
+Django `sessionid`는 `api.hakchelin.cloud` host-only 쿠키다. Toss가 `hakchelin.cloud/payment/success`로 브라우저를 새로 이동시키자 Vercel SSR은 API 전용 쿠키를 받을 수 없었다. 전역 인증 middleware가 SSR에서 미인증으로 판단해, `onMounted`의 결제 승인 요청보다 먼저 `/login`으로 redirect했다.
+
+### 해결
+
+`/payment/**`를 Nuxt client-only route로 지정했다. 결제 콜백은 브라우저에서 렌더링되고, 브라우저의 `credentials: include` API 호출이 API 도메인의 세션 쿠키를 전달해 Toss 승인과 포인트 적립을 이어갈 수 있다. 세션 쿠키 범위를 루트 도메인으로 넓히지 않아 기존 host-only 격리를 유지한다.
+
+### 배운 점
+
+서드파티 리다이렉트 뒤에는 SSR 서버가 브라우저와 같은 쿠키를 보지 못할 수 있다. 인증 상태를 API subdomain에 분리한 구조에서는 콜백의 실행 위치(SSR·CSR)를 설계의 일부로 다뤄야 한다.
+
 ## 4단계 — SQLite 테스트만으로 행 잠금을 검증할 수 없던 문제
 
 ### 문제

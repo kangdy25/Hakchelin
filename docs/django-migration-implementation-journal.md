@@ -184,3 +184,5 @@ Compose에는 일회성 `migrate` 서비스를 추가했다. API·Celery worker�
 운영 챗봇의 첫 요청은 Gemini API에서 `gemini-2.5-flash` 모델이 신규 사용자에게 더 이상 제공되지 않는다는 502 로그를 남겼다. 기본 모델과 서버 환경 예시를 `gemini-3.6-flash`로 교체하고, 최신 모델군에서 deprecate된 `temperature` 요청 파라미터를 제거했다. 모델명과 요청 payload를 검증하는 회귀 테스트를 추가해 이후 기본값 회귀를 방지한다.
 
 `gemini-3.6-flash` 전환 뒤 두 번째 요청이 20초 read timeout에 걸리는 사례도 확인했다. 요청 제한을 `GEMINI_REQUEST_TIMEOUT_SECONDS` 환경 변수(기본 45초)로 분리했고, Gemini 성공 전에는 사용자 메시지를 저장하지 않도록 변경했다. 실패한 요청이 답변 없는 `user` turn으로 남아 다음 대화의 역할 순서를 깨뜨리지 않도록 질문·답변을 하나의 DB transaction에서 함께 저장한다.
+
+Toss 성공 콜백은 외부 결제창에서 `hakchelin.cloud/payment/success`로 새 페이지 이동을 만든다. Django 세션 쿠키는 `api.hakchelin.cloud` host-only 쿠키이므로 Vercel SSR은 이를 전달받지 못하고 전역 인증 middleware가 승인 전에 로그인 페이지로 redirect했다. 결제 콜백 경로를 client-only rendering으로 지정해 브라우저가 API 도메인 세션 쿠키와 CSRF 토큰을 포함해 승인 API를 호출하도록 수정했다.
