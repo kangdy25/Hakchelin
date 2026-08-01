@@ -47,7 +47,7 @@ DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=true
 DJANGO_SECURE_HSTS_PRELOAD=false
 CELERY_BROKER_URL=redis://redis:6379/0
 CELERY_RESULT_BACKEND=redis://redis:6379/1
-TOSS_PAYMENTS_SECRET_KEY=<production key>
+TOSS_PAYMENTS_SECRET_KEY=<같은 테스트 MID의 test_sk_ 키>
 GEMINI_API_KEY=<production key>
 GEMINI_MODEL=gemini-3.6-flash
 GEMINI_REQUEST_TIMEOUT_SECONDS=45
@@ -91,3 +91,5 @@ sudo docker compose --env-file /etc/hakchelin/compose.env -f infra/lightsail/doc
 4. 문제가 있으면 이전 main 커밋을 checkout해 같은 `docker compose up -d --build`를 실행한다. DB migration은 되돌리지 않으며, 데이터 복원은 검증된 Neon 백업 절차로만 수행한다.
 
 Supabase Auth/RLS/RPC/Edge Function 삭제는 운영 검증 및 백업 복원 리허설이 끝난 뒤 별도 승인으로 수행한다.
+
+운영 상태 점검과 장애 대응은 [운영 모니터링 런북](./operations-monitoring.md)을 따른다. Toss는 포트폴리오 검증용 테스트 결제만 유지하며 라이브 키로 전환하지 않는다.

@@ -1,0 +1,31 @@
+name: Production health
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-health
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check frontend
+        run: >-
+          curl --fail --silent --show-error --location --max-time 15
+          --retry 2 --retry-all-errors --output /dev/null
+          https://hakchelin.cloud/
+      - name: Check API health
+        run: |
+          curl --fail --silent --show-error --location --max-time 15 \
+            --retry 2 --retry-all-errors \
+            --output /tmp/hakchelin-health.json \
+            https://api.hakchelin.cloud/healthz
+          python -c 'import json, sys; assert json.load(open(sys.argv[1])) == {"status": "ok"}' /tmp/hakchelin-health.json

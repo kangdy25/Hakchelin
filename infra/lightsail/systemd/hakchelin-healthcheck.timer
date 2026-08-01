@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Hakchelin production health check every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=hakchelin-healthcheck.service
+
+[Install]
+WantedBy=timers.target

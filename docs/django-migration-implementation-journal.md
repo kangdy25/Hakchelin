@@ -204,3 +204,11 @@ Django API와 Celery가 root로 실행되며 Celery의 `ROOT_DISCOURAGED` 경고
 API·migration·worker·beat에는 read-only 루트 파일시스템, 64MB `/tmp` tmpfs, 전체 Linux capability 제거, `no-new-privileges`, init process를 공통 적용했다. 영속 schedule 파일을 쓰는 Celery Beat만 schedule 위치를 `/tmp`로 명시했다. 이 제한은 애플리케이션 소스와 가상환경 변조 범위를 줄이고, 침해 시 컨테이너 권한 상승 가능성을 낮춘다.
 
 실제 production 이미지를 다시 빌드해 read-only·capability 제거·권한 상승 차단 옵션으로 실행했다. 컨테이너는 `uid=10001(app) gid=10001(app)`를 출력했고 같은 조건의 `python manage.py check`도 오류 없이 통과했다.
+
+## 13. 운영 안정화 3 — 가용성 점검과 장애 대응
+
+외부에서는 GitHub Actions가 15분마다 프런트와 API HTTPS를 확인하고, Lightsail 내부에서는 systemd timer가 5분마다 컨테이너·migration·Celery·디스크·메모리를 확인하도록 구성했다. 외부 점검과 내부 원인 점검을 분리해 DNS·TLS·Caddy 문제와 프로세스·broker 문제를 구분할 수 있다.
+
+Docker `json-file` 로그에는 서비스별 10MB, 최대 5개 파일 제한을 적용했다. 작은 Lightsail 인스턴스에서 access log나 반복 오류가 디스크 전체를 채우는 위험을 줄인다. API/Caddy, Celery/Redis, 리소스 부족, Neon/Gemini/Toss 장애별 초동 대응과 쓰기 차단·롤백 원칙은 별도 운영 런북에 기록했다.
+
+GitHub Actions와 같은 curl·JSON 검증 명령으로 현재 `https://hakchelin.cloud/`와 `https://api.hakchelin.cloud/healthz`를 확인했고 두 경로 모두 성공했다. 서버 내부 점검 timer는 해당 merge commit을 Lightsail에 배포한 뒤 설치한다.
