@@ -346,6 +346,24 @@ GitHub-hosted runner는 main CI 성공 뒤 비밀값 없는 Django image만 GHCR
 
 CI/CD 자동화는 명령 횟수만 줄이는 일이 아니라 신뢰 경계를 정하는 일이다. 공개 기여 경로와 운영 자격 증명을 같은 runner에 두지 않고, 검증 산출물만 경계를 통과시키면 자동화와 격리를 함께 얻을 수 있다.
 
+## 운영 안정화 — systemd root와 Git 저장소 소유자가 달랐던 문제
+
+### 증상
+
+최초 `hakchelin-deploy.service`가 컨테이너를 변경하기 전에 종료됐다. journal에는 `/opt/hakchelin`의 `detected dubious ownership`과 함께 저장소가 main이 아니라는 후속 메시지가 기록됐다. 같은 시점의 독립 healthcheck는 성공해 기존 서비스는 정상 상태였다.
+
+### 원인
+
+배포 service는 Docker socket과 root 전용 환경 파일 때문에 root로 실행하지만 저장소는 `ubuntu` 소유다. Git은 CVE 계열 저장소 구성·hook 공격을 막기 위해 현재 사용자와 소유자가 다른 작업 트리를 기본적으로 신뢰하지 않는다. 첫 Git 명령 실패가 command substitution 안에서 발생하면서 다음 branch 검증 메시지까지 이어졌다.
+
+### 해결
+
+`safe.directory`를 전역 추가하지 않았다. script가 저장소 UID와 현재 UID를 비교하고, root service라면 `runuser`로 Git 상태 확인·fetch·merge만 실제 저장소 소유자 권한으로 실행한다. Docker Compose와 `/etc/hakchelin`, `/var/lib/hakchelin` 작업만 root에 남겼다.
+
+### 배운 점
+
+자동화 service 전체가 root여야 하더라도 모든 하위 명령이 root일 필요는 없다. 도구별 최소 권한으로 나누면 보안 기능을 끄지 않고도 운영 요구를 만족하며, root가 Git hook이나 작업 트리 파일을 실행·소유하는 위험도 줄일 수 있다.
+
 ## 운영 안정화 — Vercel 검증과 실제 www DNS가 달랐던 문제
 
 ### 증상

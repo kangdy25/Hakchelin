@@ -43,6 +43,8 @@ curl --fail https://api.hakchelin.cloud/healthz
 
 `api-image.env`에는 비밀값이 아니라 현재 배포된 SHA image만 들어간다. `/etc/hakchelin/backend.env`의 Django·Neon·Gemini·Toss 비밀값은 GitHub Actions나 GHCR로 전달하지 않는다.
 
+systemd service는 root만 읽을 수 있는 `/etc/hakchelin` 환경 파일과 Docker socket에 접근하기 위해 root로 실행한다. 다만 Git 상태 확인·fetch·fast-forward는 `/opt/hakchelin`의 실제 소유자 권한으로 낮춰 실행한다. 저장소가 `ubuntu` 소유일 때 root Git의 dubious ownership 보호를 우회하지 않으며, 작업 트리·Git metadata와 hook을 root 권한으로 처리하지 않는다.
+
 ## 배포 흐름과 실패 처리
 
 1. Vercel preview, frontend, backend CI가 성공한다.

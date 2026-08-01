@@ -221,6 +221,8 @@ GitHub Actions와 같은 curl·JSON 검증 명령으로 현재 `https://hakcheli
 
 workflow는 `actionlint`, 배포·상태 점검 script는 `ShellCheck`와 `bash -n`을 통과했다. 필수 명령이 없는 환경의 가드도 실행해 `flock` 누락을 성공으로 오인하지 않고 전용 오류 코드로 중단하는 것을 확인했다.
 
+Lightsail에서 최초 systemd 배포를 실행했을 때 root service와 ubuntu 소유 저장소의 차이로 Git `dubious ownership` 보호가 배포를 중단했다. 기존 컨테이너는 건드리기 전이었고 별도 healthcheck는 성공했다. 전역 `safe.directory` 예외를 두지 않고 Git 명령만 저장소 소유자로 낮춰 실행하도록 수정해, root는 Docker와 보호된 환경 파일 접근에만 사용한다.
+
 main 병합 뒤 실제 `publish-api` job도 frontend·backend CI 이후 성공했다. `sha-ae3017b2fd70267e313e9b4d008f90594fe077a1` 이미지를 Lightsail과 같은 `linux/amd64` 플랫폼으로 익명 pull해 GHCR 공개 접근과 산출물 존재를 확인했다.
 
 ## 15. 운영 안정화 5 — canonical 도메인 redirect
