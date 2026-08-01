@@ -22,6 +22,16 @@ jobs:
           curl --fail --silent --show-error --location --max-time 15
           --retry 2 --retry-all-errors --output /dev/null
           https://hakchelin.cloud/
+      - name: Check canonical domain redirect
+        run: |
+          read -r status redirect_url < <(
+            curl --silent --show-error --max-time 15 \
+              --output /dev/null \
+              --write-out '%{http_code} %{redirect_url}' \
+              https://www.hakchelin.cloud/
+          )
+          test "$status" = "308"
+          test "$redirect_url" = "https://hakchelin.cloud/"
       - name: Check API health
         run: |
           curl --fail --silent --show-error --location --max-time 15 \

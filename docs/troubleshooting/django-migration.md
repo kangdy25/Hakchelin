@@ -345,3 +345,21 @@ GitHub-hosted runner는 main CI 성공 뒤 비밀값 없는 Django image만 GHCR
 ### 배운 점
 
 CI/CD 자동화는 명령 횟수만 줄이는 일이 아니라 신뢰 경계를 정하는 일이다. 공개 기여 경로와 운영 자격 증명을 같은 runner에 두지 않고, 검증 산출물만 경계를 통과시키면 자동화와 격리를 함께 얻을 수 있다.
+
+## 운영 안정화 — Vercel 검증과 실제 www DNS가 달랐던 문제
+
+### 증상
+
+Vercel project API에서는 새 `www.hakchelin.cloud`가 `verified: true`였지만 외부 curl은 host를 해석하지 못했다. CLI도 domain 추가 성공 직후 team domain fetch에서 403을 출력해 설정 실패처럼 보였다.
+
+### 원인
+
+apex `hakchelin.cloud` 소유권 덕분에 project domain의 소유 검증은 통과했지만, 가비아 authoritative DNS에는 `www` 레코드가 아직 없었다. CLI의 후속 team domain 조회와 project에 연결된 subdomain 상태도 서로 다른 API 범위였다.
+
+### 해결
+
+project domain API에서 `www`가 실제로 추가됐는지 재확인하고 redirect·status를 308로 설정했다. 별도 domain config API의 `misconfigured: true`와 우선순위 1 `recommendedCNAME`을 기준으로 가비아 레코드를 확정했다. 최종 완료 조건은 dashboard의 verified 표기가 아니라 외부 DNS 해석, TLS, 308 status와 `Location`을 모두 통과하는 것으로 정했다.
+
+### 배운 점
+
+도메인 소유 검증, DNS routing, TLS 발급, HTTP redirect는 서로 다른 단계다. 한 화면의 초록색 상태만으로 완료를 판단하지 않고 실제 사용자 경로를 끝까지 요청해야 한다.

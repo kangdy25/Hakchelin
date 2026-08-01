@@ -220,3 +220,11 @@ GitHub Actions와 같은 curl·JSON 검증 명령으로 현재 `https://hakcheli
 공개 저장소에서 production self-hosted runner를 쓰지 않고 Lightsail의 제한된 systemd timer가 GHCR image를 pull하는 구조를 선택했다. 배포 스크립트는 서버 저장소가 main·clean 상태일 때만 fast-forward하고, migration과 컨테이너 재기동 뒤 외부 health를 검증한다. 실패하면 이전 image로 자동 복구하고 같은 실패 commit을 반복 배포하지 않는다.
 
 workflow는 `actionlint`, 배포·상태 점검 script는 `ShellCheck`와 `bash -n`을 통과했다. 필수 명령이 없는 환경의 가드도 실행해 `flock` 누락을 성공으로 오인하지 않고 전용 오류 코드로 중단하는 것을 확인했다.
+
+main 병합 뒤 실제 `publish-api` job도 frontend·backend CI 이후 성공했다. `sha-ae3017b2fd70267e313e9b4d008f90594fe077a1` 이미지를 Lightsail과 같은 `linux/amd64` 플랫폼으로 익명 pull해 GHCR 공개 접근과 산출물 존재를 확인했다.
+
+## 15. 운영 안정화 5 — canonical 도메인 redirect
+
+Vercel Hakchelin project에 `www.hakchelin.cloud`를 추가하고 `hakchelin.cloud`로 HTTP 308 영구 redirect하도록 설정했다. apex 소유권을 통해 Vercel project domain 검증은 즉시 완료됐고, 가비아에는 Vercel config API가 권장한 전용 CNAME만 추가한다.
+
+외부 모니터링에는 `www`의 상태 코드와 정확한 redirect target 검증을 추가했다. redirect가 해제되거나 임시 상태 코드·잘못된 host로 바뀌면 정기 `Production health` workflow가 실패한다. DNS·TLS 전파 후 같은 계약을 로컬에서 확인하는 script와 도메인 운영 런북도 함께 추가했다.
