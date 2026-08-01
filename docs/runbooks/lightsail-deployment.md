@@ -76,6 +76,8 @@ curl --fail https://api.hakchelin.cloud/healthz
 
 `migrate` 컨테이너는 매 배포에서 Django migration을 한 번만 적용하고 종료한다. `api`, `worker`, `beat`는 migration 성공 뒤에만 시작한다. 장애 분석은 아래 명령으로 한다.
 
+API health check는 컨테이너 내부 HTTP로 `/healthz`를 호출하되, 실제 Caddy 요청과 동일하게 첫 번째 `DJANGO_ALLOWED_HOSTS` 값을 `Host`로 사용하고 `X-Forwarded-Proto: https`를 보낸다. 따라서 운영 HTTPS redirect를 켠 상태에서도 내부 점검이 200 응답을 받을 수 있다.
+
 ```bash
 sudo docker compose --env-file /etc/hakchelin/compose.env -f infra/lightsail/docker-compose.yml logs --tail=100 api migrate caddy
 ```

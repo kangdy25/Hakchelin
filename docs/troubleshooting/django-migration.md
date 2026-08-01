@@ -206,6 +206,24 @@ chmod 600 LightsailDefaultKey-ap-northeast-2.pem
 
 인프라 접근 문제는 서버의 보안 그룹·IP만이 아니라, 클라이언트 키의 파일 권한까지 함께 점검해야 한다. 키를 전달하거나 커밋하는 대신 파일 경로만 공유하고, 최소 권한을 먼저 적용하는 것이 안전하다.
 
+## 5단계 — 운영 보안 설정이 Docker health check를 실패시킨 문제
+
+### 증상
+
+Caddy 인증서 발급과 Django migration은 성공했지만 `api` 컨테이너가 약 90초 뒤 unhealthy가 됐다. Caddy는 API health check 성공에 의존하므로 시작하지 않았고 외부 HTTPS 요청은 연결 거부를 반환했다.
+
+### 원인
+
+health check는 `http://localhost:8000/healthz`를 호출했다. 운영 Django는 `api.hakchelin.cloud`만 `ALLOWED_HOSTS`에 허용하고 `SECURE_SSL_REDIRECT=true`를 사용하므로, 내부 요청은 Host 검증에서 400이 되거나 HTTPS로 redirect된 뒤 TLS가 없는 Gunicorn 포트에서 실패했다.
+
+### 해결
+
+장애 복구 중에는 `localhost`를 허용하고 Django의 중복 SSL redirect를 잠시 꺼 API와 Caddy를 정상화했다. 영구 수정에서는 health check가 환경 변수의 첫 번째 운영 host를 `Host` 헤더로 보내고, Caddy 뒤의 HTTPS 요청과 동일하게 `X-Forwarded-Proto: https`를 지정하도록 바꿨다. 이후 Django의 HTTPS redirect를 유지하면서도 내부 점검은 200 응답을 받는다.
+
+### 배운 점
+
+컨테이너 health check도 운영 보안 middleware를 통과하는 실제 HTTP 요청이다. proxy에서 TLS를 종료하는 구조에서는 단순히 포트가 열렸는지만 볼 것이 아니라 Host와 원본 프로토콜 헤더까지 운영 요청과 일치시켜야 한다.
+
 ## 4단계 — SQLite 테스트만으로 행 잠금을 검증할 수 없던 문제
 
 ### 문제
