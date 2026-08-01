@@ -2,7 +2,7 @@
 
 > 기록 범위: 모노레포 기반 구축부터 로컬 Django REST 컷오버까지
 >
-> 현재 상태: 로컬 Nuxt 런타임의 Supabase 직접 의존 제거 완료, Neon 운영 데이터 컷오버 전
+> 현재 상태: Neon 스테이징 ETL·대조 완료, Lightsail 운영 배포 준비 중
 
 이 문서는 학슐랭을 Nuxt·Supabase 구조에서 Nuxt·Django 구조로 옮기며 실제로 구현한 내용과 검증 결과를 시간순으로 정리한다. 문제의 증상·원인·해결 과정은 [Django 마이그레이션 트러블슈팅 일지](./troubleshooting/django-migration.md)에 별도로 기록한다.
 
@@ -144,10 +144,11 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 
 로컬 API 전환은 완료됐지만 운영 마이그레이션은 아직 끝나지 않았다.
 
-1. 기존 Supabase Auth 사용자에게 Resend 비밀번호 재설정 메일을 발송한다.
-2. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
-3. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
-4. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
+1. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
+2. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
+3. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
+
+기존 Supabase 계정은 이관 시 UUID와 프로필을 보존하되 **unusable password 상태로 유지**한다. 서비스 전환 안내나 비밀번호 재설정 메일은 보내지 않으며, 이후 실제 사용이 필요한 계정은 Django 회원가입으로 새로 만든다.
 
 Supabase SQL과 Edge Function 파일은 이 단계가 끝날 때까지 ETL 원본과 복구 대조 자료로 보존한다.
 
@@ -171,3 +172,9 @@ GitHub Actions의 backend job에는 PostgreSQL 17 서비스를 추가했다. SQL
 Neon 스테이징에는 Django migration 전체를 적용했고 실제 생성된 인덱스·제약 조건이 자동 대조 목록과 일치함을 확인했다. Supabase Session pooler를 통한 dry-run에서는 사용자 22, 메뉴 17, 예약 32, 거래 93, 주문 52, 프롬프트 3, AI 로그 61, 대화 22건 등 총 302건이 유효성·외래키·대상 제약을 통과했으며 대상 쓰기는 모두 롤백됐다.
 
 이후 같은 원본으로 실제 스테이징 ETL을 실행했고 명령 내부 자동 대조와 별도 `verify_supabase_migration` 재검증이 모두 `ok: true`를 반환했다. 8개 테이블의 누락·추가 PK는 0건이었고 사용자 포인트 총합은 원본·대상 모두 2,246,000점이었다. 예약 상태는 노쇼 17·사용 3·취소 12건, 충전 주문은 대기 43·결제 완료 9건으로 일치했으며 필수 인덱스와 unique 제약도 모두 확인했다.
+
+## 10. 5단계 — 운영 배포 기반
+
+Lightsail Seoul 인스턴스와 Static IP를 준비했다. API는 `api.hakchelin.cloud`에서 Caddy TLS 뒤에 실행하고, Nuxt는 Vercel의 `hakchelin.cloud`에서 제공하는 분리 구조로 확정했다. Django는 `sessionid`를 API host-only Secure·HttpOnly 쿠키로 유지하며, Nuxt가 CSRF 토큰을 mutation 헤더에 담을 수 있도록 `csrftoken`만 `.hakchelin.cloud` 범위로 설정한다.
+
+Compose에는 일회성 `migrate` 서비스를 추가했다. API·Celery worker·beat가 migration 성공을 의존하므로, 컨테이너가 동시에 기동하면서 DB schema가 준비되기 전에 요청을 처리하는 문제를 피한다. HTTPS redirect와 HSTS는 로컬 기본값에 섞지 않고 운영 환경 파일에서만 명시적으로 활성화한다. 실제 서버 명령, 환경 변수와 롤백 원칙은 [Lightsail 운영 배포 런북](./runbooks/lightsail-deployment.md)에 기록했다.

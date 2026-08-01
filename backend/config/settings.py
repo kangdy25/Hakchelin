@@ -12,6 +12,10 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-development-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
 ALLOWED_HOSTS = [host for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host]
 
+
+def env_flag(name: str, default: bool = False) -> bool:
+    return os.getenv(name, str(default)).lower() == "true"
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -153,3 +157,17 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# api.hakchelin.cloud에서 발급한 CSRF 토큰을 hakchelin.cloud의 Nuxt 앱이
+# 읽어 mutation 헤더에 실을 수 있도록 한다. 세션 쿠키는 API host-only로
+# 유지해 불필요하게 넓은 범위로 전송하지 않는다.
+CSRF_COOKIE_DOMAIN = os.getenv("DJANGO_CSRF_COOKIE_DOMAIN") or None
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+
+# 로컬과 테스트에서는 비활성화하고, Caddy 뒤의 운영 환경에서만 명시적으로
+# HTTPS redirect/HSTS를 켠다. HSTS는 HTTPS가 정상 검증된 도메인에만 설정한다.
+SECURE_SSL_REDIRECT = env_flag("DJANGO_SECURE_SSL_REDIRECT")
+SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_flag("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS")
+SECURE_HSTS_PRELOAD = env_flag("DJANGO_SECURE_HSTS_PRELOAD")

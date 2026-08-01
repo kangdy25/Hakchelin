@@ -182,6 +182,30 @@ Nuxt의 인증·메뉴·예약·포인트·관리자·챗봇 코드는 모두 �
 
 `supabase/` 디렉터리는 Neon 데이터 이관과 장애 복구 대조를 위한 legacy 원본으로만 남겨 두며 런타임에서는 사용하지 않는다. 외부 기능을 실제로 사용하려면 로컬 `.env`에 `TOSS_PAYMENTS_SECRET_KEY`, `GEMINI_API_KEY`를 설정해야 한다.
 
+## 5단계 — Lightsail SSH 키 권한 때문에 초기 접속이 거부된 문제
+
+### 증상
+
+새 Lightsail 인스턴스가 Running 상태이고 네트워크도 응답했지만, SSH는 `UNPROTECTED PRIVATE KEY FILE` 뒤에 `Permission denied (publickey)`로 실패했다.
+
+### 원인
+
+내려받은 `.pem` 파일 권한이 `0644`였다. OpenSSH는 다른 로컬 사용자가 개인 키를 읽을 수 있는 경우 해당 키를 무시한다.
+
+### 해결
+
+키 파일 권한을 소유자 전용 읽기/쓰기로 제한했다.
+
+```bash
+chmod 600 LightsailDefaultKey-ap-northeast-2.pem
+```
+
+또한 `*.pem`을 `.gitignore`에 등록해 개인 키가 Git 인덱스에 들어가지 않게 했다.
+
+### 배운 점
+
+인프라 접근 문제는 서버의 보안 그룹·IP만이 아니라, 클라이언트 키의 파일 권한까지 함께 점검해야 한다. 키를 전달하거나 커밋하는 대신 파일 경로만 공유하고, 최소 권한을 먼저 적용하는 것이 안전하다.
+
 ## 4단계 — SQLite 테스트만으로 행 잠금을 검증할 수 없던 문제
 
 ### 문제
