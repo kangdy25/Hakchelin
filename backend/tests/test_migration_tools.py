@@ -172,7 +172,7 @@ def test_snapshot_rejects_orphan_foreign_keys():
 
 def test_database_url_with_unescaped_reserved_character_is_rejected():
     with pytest.raises(MigrationValidationError, match="percent-encoding"):
-        ensure_distinct_databases("postgresql://user:password@host:invalid/db", "default")
+        ensure_distinct_databases("postgresql://user:pass?word@host:5432/db", "default")
 
 
 @pytest.mark.django_db(transaction=True)
