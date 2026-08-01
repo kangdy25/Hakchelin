@@ -50,18 +50,40 @@ fi
 
 cd "$repository_directory"
 
-if [[ "$(git symbolic-ref --short HEAD)" != "main" ]]; then
+repository_uid="$(stat --format='%u' "$repository_directory")"
+current_uid="$(id -u)"
+git_command=(git -C "$repository_directory")
+
+if [[ "$current_uid" != "$repository_uid" ]]; then
+  if [[ "$current_uid" != "0" ]]; then
+    echo "Deployment must run as root or the repository owner." >&2
+    exit 1
+  fi
+  if ! command -v runuser >/dev/null 2>&1; then
+    echo "Required command is missing: runuser" >&2
+    exit 69
+  fi
+
+  repository_owner="$(stat --format='%U' "$repository_directory")"
+  if [[ -z "$repository_owner" || "$repository_owner" == "UNKNOWN" ]]; then
+    echo "Could not resolve the repository owner." >&2
+    exit 1
+  fi
+  git_command=(runuser --user "$repository_owner" -- git -C "$repository_directory")
+fi
+
+if [[ "$("${git_command[@]}" symbolic-ref --short HEAD)" != "main" ]]; then
   echo "Deployment repository must be on main." >&2
   exit 1
 fi
 
-if [[ -n "$(git status --porcelain)" ]]; then
+if [[ -n "$("${git_command[@]}" status --porcelain)" ]]; then
   echo "Deployment repository has local changes; refusing to overwrite them." >&2
   exit 1
 fi
 
-git fetch --quiet origin main
-target_commit="$(git rev-parse origin/main)"
+"${git_command[@]}" fetch --quiet origin main
+target_commit="$("${git_command[@]}" rev-parse origin/main)"
 target_image="${image_repository}:sha-${target_commit}"
 
 if [[ -f "$failed_commit_file" && "$(tr -d '\r\n' < "$failed_commit_file")" == "$target_commit" ]]; then
@@ -75,7 +97,7 @@ if [[ -n "$api_container_id" ]]; then
   previous_image="$(docker inspect --format '{{.Config.Image}}' "$api_container_id")"
 fi
 
-current_commit="$(git rev-parse HEAD)"
+current_commit="$("${git_command[@]}" rev-parse HEAD)"
 current_image=""
 if [[ -f "$deployment_env_file" ]]; then
   current_image="$(sed -n 's/^API_IMAGE=//p' "$deployment_env_file")"
@@ -88,7 +110,7 @@ fi
 
 # The immutable SHA tag exists only after the main CI tests and image publication succeed.
 docker pull "$target_image"
-git merge --ff-only "$target_commit"
+"${git_command[@]}" merge --ff-only "$target_commit"
 
 write_private_file "$deployment_env_file" "API_IMAGE=$target_image"
 compose=(docker compose --env-file "$compose_env_file" --env-file "$deployment_env_file" -f "$compose_file")

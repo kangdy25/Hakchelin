@@ -220,3 +220,5 @@ GitHub Actions와 같은 curl·JSON 검증 명령으로 현재 `https://hakcheli
 공개 저장소에서 production self-hosted runner를 쓰지 않고 Lightsail의 제한된 systemd timer가 GHCR image를 pull하는 구조를 선택했다. 배포 스크립트는 서버 저장소가 main·clean 상태일 때만 fast-forward하고, migration과 컨테이너 재기동 뒤 외부 health를 검증한다. 실패하면 이전 image로 자동 복구하고 같은 실패 commit을 반복 배포하지 않는다.
 
 workflow는 `actionlint`, 배포·상태 점검 script는 `ShellCheck`와 `bash -n`을 통과했다. 필수 명령이 없는 환경의 가드도 실행해 `flock` 누락을 성공으로 오인하지 않고 전용 오류 코드로 중단하는 것을 확인했다.
+
+Lightsail에서 최초 systemd 배포를 실행했을 때 root service와 ubuntu 소유 저장소의 차이로 Git `dubious ownership` 보호가 배포를 중단했다. 기존 컨테이너는 건드리기 전이었고 별도 healthcheck는 성공했다. 전역 `safe.directory` 예외를 두지 않고 Git 명령만 저장소 소유자로 낮춰 실행하도록 수정해, root는 Docker와 보호된 환경 파일 접근에만 사용한다.
