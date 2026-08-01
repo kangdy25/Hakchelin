@@ -376,7 +376,7 @@ apex `hakchelin.cloud` 소유권 덕분에 project domain의 소유 검증은 �
 
 ### 해결
 
-project domain API에서 `www`가 실제로 추가됐는지 재확인하고 redirect·status를 308로 설정했다. 별도 domain config API의 `misconfigured: true`와 우선순위 1 `recommendedCNAME`을 기준으로 가비아 레코드를 확정했다. 최종 완료 조건은 dashboard의 verified 표기가 아니라 외부 DNS 해석, TLS, 308 status와 `Location`을 모두 통과하는 것으로 정했다.
+project domain API에서 `www`가 실제로 추가됐는지 재확인하고 redirect·status를 308로 설정했다. 별도 domain config API의 `misconfigured: true`와 우선순위 1 `recommendedCNAME`을 기준으로 가비아 레코드를 확정했다. 레코드 추가 뒤 config가 `misconfigured: false`가 됐고 Vercel edge에서 TLS, HTTP/2 308, 정확한 `Location`을 검증했다. 로컬 OS에는 이전 NXDOMAIN cache가 잠시 남아 public DNS 결과와 차이가 났으므로 최종 완료 조건은 dashboard 표기가 아니라 authoritative/public DNS와 실제 edge 요청으로 판정했다.
 
 ### 배운 점
 

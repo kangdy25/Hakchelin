@@ -47,3 +47,5 @@ infra/lightsail/scripts/verify-domain-routing.sh
 4. GitHub Actions `Production health`가 15분마다 같은 계약을 확인한다.
 
 브라우저 cache 때문에 이전 redirect가 보이면 시크릿 창이나 curl로 먼저 판별한다. DNS와 TLS가 정상인데 redirect 대상만 틀렸다면 Vercel Project Settings → Domains의 `www` redirect를 수정한다.
+
+레코드 추가 직후 public DNS에는 보이지만 로컬 OS resolver가 이전 NXDOMAIN을 잠시 유지할 수 있다. 이 경우 가비아 레코드를 반복 수정하지 말고 `dig`로 authoritative/public resolver를 확인한 뒤 TTL 동안 기다린다.

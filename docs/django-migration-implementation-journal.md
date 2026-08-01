@@ -230,3 +230,5 @@ main 병합 뒤 실제 `publish-api` job도 frontend·backend CI 이후 성공�
 Vercel Hakchelin project에 `www.hakchelin.cloud`를 추가하고 `hakchelin.cloud`로 HTTP 308 영구 redirect하도록 설정했다. apex 소유권을 통해 Vercel project domain 검증은 즉시 완료됐고, 가비아에는 Vercel config API가 권장한 전용 CNAME만 추가한다.
 
 외부 모니터링에는 `www`의 상태 코드와 정확한 redirect target 검증을 추가했다. redirect가 해제되거나 임시 상태 코드·잘못된 host로 바뀌면 정기 `Production health` workflow가 실패한다. DNS·TLS 전파 후 같은 계약을 로컬에서 확인하는 script와 도메인 운영 런북도 함께 추가했다.
+
+가비아 CNAME 추가 뒤 public DNS에서 `79c72787ec396ec2.vercel-dns-017.com`을 확인했고 Vercel config도 `misconfigured: false`로 전환됐다. Vercel edge에서 `www.hakchelin.cloud` 인증서 검증이 성공했으며 HTTP/2 308과 `Location: https://hakchelin.cloud/`이 정확히 반환됐다. 로컬 macOS resolver에는 추가 전 NXDOMAIN이 잠시 남았지만 authoritative/public DNS와 실제 edge 요청은 모두 정상이라 TTL 만료 뒤 자연 해소되는 상태로 판단했다.
