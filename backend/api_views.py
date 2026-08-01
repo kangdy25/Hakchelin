@@ -399,13 +399,6 @@ class ChatStreamView(DjangoAuthenticatedView):
             .values("role", "content")
             .order_by("created_at")[:30]
         )
-        ChatMessage.objects.create(
-            user=request.user,
-            conversation_id=data["conversation_id"],
-            role=ChatMessage.Role.USER,
-            content=data["message"],
-        )
-
         def events():
             try:
                 answer = generate_chat_answer(
@@ -413,12 +406,19 @@ class ChatStreamView(DjangoAuthenticatedView):
                     message=data["message"],
                     history=history,
                 )
-                ChatMessage.objects.create(
-                    user=request.user,
-                    conversation_id=data["conversation_id"],
-                    role=ChatMessage.Role.ASSISTANT,
-                    content=answer,
-                )
+                with transaction.atomic():
+                    ChatMessage.objects.create(
+                        user=request.user,
+                        conversation_id=data["conversation_id"],
+                        role=ChatMessage.Role.USER,
+                        content=data["message"],
+                    )
+                    ChatMessage.objects.create(
+                        user=request.user,
+                        conversation_id=data["conversation_id"],
+                        role=ChatMessage.Role.ASSISTANT,
+                        content=answer,
+                    )
                 yield f"event: token\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
             except ChatbotError as error:
