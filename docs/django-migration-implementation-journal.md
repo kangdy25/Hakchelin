@@ -212,3 +212,11 @@ API·migration·worker·beat에는 read-only 루트 파일시스템, 64MB `/tmp`
 Docker `json-file` 로그에는 서비스별 10MB, 최대 5개 파일 제한을 적용했다. 작은 Lightsail 인스턴스에서 access log나 반복 오류가 디스크 전체를 채우는 위험을 줄인다. API/Caddy, Celery/Redis, 리소스 부족, Neon/Gemini/Toss 장애별 초동 대응과 쓰기 차단·롤백 원칙은 별도 운영 런북에 기록했다.
 
 GitHub Actions와 같은 curl·JSON 검증 명령으로 현재 `https://hakchelin.cloud/`와 `https://api.hakchelin.cloud/healthz`를 확인했고 두 경로 모두 성공했다. 서버 내부 점검 timer는 해당 merge commit을 Lightsail에 배포한 뒤 설치한다.
+
+## 14. 운영 안정화 4 — 검증된 이미지 자동 배포
+
+`main` CI의 frontend·backend job이 모두 성공한 뒤에만 GHCR에 Django 이미지를 발행하는 `publish-api` job을 추가했다. 운영 배포는 mutable `latest` 대신 commit SHA 전체가 포함된 image tag를 사용하며, Actions가 build provenance도 함께 발행한다. 애플리케이션 비밀값은 image build나 Actions에 전달하지 않는다.
+
+공개 저장소에서 production self-hosted runner를 쓰지 않고 Lightsail의 제한된 systemd timer가 GHCR image를 pull하는 구조를 선택했다. 배포 스크립트는 서버 저장소가 main·clean 상태일 때만 fast-forward하고, migration과 컨테이너 재기동 뒤 외부 health를 검증한다. 실패하면 이전 image로 자동 복구하고 같은 실패 commit을 반복 배포하지 않는다.
+
+workflow는 `actionlint`, 배포·상태 점검 script는 `ShellCheck`와 `bash -n`을 통과했다. 필수 명령이 없는 환경의 가드도 실행해 `flock` 누락을 성공으로 오인하지 않고 전용 오류 코드로 중단하는 것을 확인했다.

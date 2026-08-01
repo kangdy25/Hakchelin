@@ -38,10 +38,12 @@ cd /opt/hakchelin
 sudo infra/lightsail/scripts/check-service-health.sh
 
 sudo docker compose --env-file /etc/hakchelin/compose.env \
+  --env-file /var/lib/hakchelin/api-image.env \
   -f infra/lightsail/docker-compose.yml \
   ps
 
 sudo docker compose --env-file /etc/hakchelin/compose.env \
+  --env-file /var/lib/hakchelin/api-image.env \
   -f infra/lightsail/docker-compose.yml \
   logs --since=30m --tail=200 api worker beat caddy redis
 ```

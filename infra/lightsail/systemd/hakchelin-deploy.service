@@ -1,0 +1,14 @@
+[Unit]
+Description=Deploy latest verified Hakchelin main image
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/hakchelin
+ExecStart=/opt/hakchelin/infra/lightsail/scripts/deploy-latest-main.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+TimeoutStartSec=10min

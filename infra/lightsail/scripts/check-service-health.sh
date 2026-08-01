@@ -3,6 +3,7 @@
 set -uo pipefail
 
 compose_env_file="${COMPOSE_ENV_FILE:-/etc/hakchelin/compose.env}"
+deployment_env_file="${DEPLOYMENT_ENV_FILE:-/var/lib/hakchelin/api-image.env}"
 compose_file="${COMPOSE_FILE:-/opt/hakchelin/infra/lightsail/docker-compose.yml}"
 public_health_url="${PUBLIC_HEALTH_URL:-https://api.hakchelin.cloud/healthz}"
 disk_usage_limit="${DISK_USAGE_LIMIT_PERCENT:-85}"
@@ -20,7 +21,11 @@ if [[ ! -f "$compose_file" ]]; then
   exit 1
 fi
 
-compose=(docker compose --env-file "$compose_env_file" -f "$compose_file")
+compose_env_args=(--env-file "$compose_env_file")
+if [[ -f "$deployment_env_file" ]]; then
+  compose_env_args+=(--env-file "$deployment_env_file")
+fi
+compose=(docker compose "${compose_env_args[@]}" -f "$compose_file")
 
 for service in caddy api worker beat redis; do
   container_id="$("${compose[@]}" ps --quiet "$service" 2>/dev/null)"
