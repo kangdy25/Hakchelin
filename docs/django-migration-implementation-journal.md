@@ -188,3 +188,11 @@ Compose에는 일회성 `migrate` 서비스를 추가했다. API·Celery worker�
 Toss 성공 콜백은 외부 결제창에서 `hakchelin.cloud/payment/success`로 새 페이지 이동을 만든다. Django 세션 쿠키는 `api.hakchelin.cloud` host-only 쿠키이므로 Vercel SSR은 이를 전달받지 못하고 전역 인증 middleware가 승인 전에 로그인 페이지로 redirect했다. 결제 콜백 경로를 client-only rendering으로 지정해 브라우저가 API 도메인 세션 쿠키와 CSRF 토큰을 포함해 승인 API를 호출하도록 수정했다.
 
 콜백 복구 뒤 Toss 승인 API가 API 키 인증 오류를 반환한 사례도 기록했다. Vercel의 브라우저용 client key와 Lightsail의 server-only secret key를 같은 테스트 상점(MID)의 `test_ck_`·`test_sk_` 쌍으로 맞춘 뒤, 주문 생성·결제창·승인·포인트 적립이 실제 운영 도메인에서 모두 성공했다. 라이브 결제는 Toss 계약 후 별도 `live_` 키 쌍으로 전환한다.
+
+## 11. 운영 안정화 1 — Neon 백업·복원 리허설
+
+Neon 연결 문자열을 출력하지 않는 `pg_dump` 자동화와 일회용 PostgreSQL 복원 스크립트를 추가했다. 백업은 custom format dump, 8개 핵심 테이블 수량 manifest, SHA-256 checksum으로 구성하고 저장소의 ignore 규칙에 포함했다. 원격 DB로의 잘못된 복원을 원천 차단하기 위해 복원 스크립트는 내부에서 생성한 일회용 Docker 컨테이너만 대상으로 사용한다.
+
+2026-08-01 실제 Neon 논리 백업을 PostgreSQL 18 클라이언트로 생성하고 PostgreSQL 18 격리 컨테이너에 복원했다. checksum과 manifest 대조가 성공했으며 복원 결과는 사용자 23, 메뉴 17, 예약 32, 포인트 거래 94, 포인트 주문 56, 프롬프트 3, AI 로그 80, 대화 51건이었다. Django migration 이력과 음수 사용자 포인트가 없음도 함께 검증했다.
+
+첫 시도에서는 Neon 18.4에 PostgreSQL 17 `pg_dump`를 사용해 major version 불일치로 중단됐다. 도구를 PostgreSQL 18로 맞췄고, 실패한 dump가 완성본처럼 남지 않도록 `.partial` 파일에 생성한 뒤 검증 성공 시에만 최종 이름으로 원자적으로 이동하도록 개선했다. Alpine 이미지의 BusyBox `sha256sum`이 GNU 장문 옵션을 지원하지 않는 차이도 `-c` 옵션으로 교정했다.

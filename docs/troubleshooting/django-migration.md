@@ -287,3 +287,17 @@ Toss 성공 URL로 새 페이지 이동이 일어나면 Vercel SSR은 `api.hakch
 ### Toss API 키가 서로 다른 환경·상점에서 섞인 문제
 
 콜백 경로를 고친 뒤에는 Toss 승인 API가 `인증되지 않은 시크릿 키 혹은 클라이언트 키`를 반환했다. 결제창의 클라이언트 키와 서버의 시크릿 키가 test/live 환경 또는 서로 다른 상점(MID)에서 발급된 조합이면 `INVALID_API_KEY`가 발생한다. 브라우저에는 같은 MID의 `test_ck_`를 Vercel 환경 변수로, 서버에는 짝이 되는 `test_sk_`를 `/etc/hakchelin/backend.env`로 설정해 테스트 결제와 포인트 적립을 확인했다. 키의 prefix와 MID를 점검하되 시크릿 원문은 로그·채팅·저장소에 남기지 않는다.
+
+## 운영 안정화 — Neon 백업 도구의 PostgreSQL 버전 불일치
+
+### 문제
+
+격리 복원 리허설을 위해 PostgreSQL 17 이미지의 `pg_dump`를 실행했지만 Neon 서버가 PostgreSQL 18.4로 올라가 있어 `server version mismatch`로 백업이 중단됐다.
+
+### 해결
+
+백업과 일회용 복원 컨테이너를 모두 PostgreSQL 18 이미지로 맞췄다. `pg_dump` 실패 시 불완전한 파일을 성공으로 취급하지 않도록 `.partial`에 먼저 생성하고 검증 뒤 최종 이름으로 이동한다. 생성 뒤에는 `pg_restore --list`, SHA-256, 핵심 테이블 수량 manifest를 차례로 검증한다. Alpine의 BusyBox `sha256sum`은 GNU의 `--check` 장문 옵션을 지원하지 않아 이식 가능한 `-c`를 사용했다.
+
+### 배운 점
+
+PostgreSQL 논리 백업 클라이언트는 서버보다 오래된 major 버전을 고정하면 안 된다. 운영 DB 업그레이드와 백업 도구 버전을 함께 관리하고, 실제 복원 리허설로 버전 변화가 복구 절차에 미치는 영향을 조기에 발견해야 한다.

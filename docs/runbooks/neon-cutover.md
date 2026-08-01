@@ -84,7 +84,7 @@ ETL 순서는 다음과 같이 고정된다.
 
 ## 6. 운영 점검 창
 
-1. 최신 Supabase 백업 시점과 복원 방법을 확인한다.
+1. [Neon 백업·복원 런북](./neon-backup-restore.md)에 따라 최신 논리 백업과 격리 복원 결과를 확인한다.
 2. Django에 `DJANGO_WRITE_BLOCKED=true`를 적용하고 재시작한다.
 3. `/api/`의 POST·PUT·PATCH·DELETE가 `503`과 `Retry-After`를 반환하고 GET·`/healthz`가 정상인지 확인한다.
 4. 레거시 Supabase RPC 실행 권한과 Edge Function 쓰기 경로가 비활성인지 확인한다.
@@ -102,4 +102,4 @@ Neon 연결 전환 전 실패라면 쓰기 차단을 유지한 채 ETL 원인을
 
 Neon 연결 전환 직후 심각한 오류가 발견되었고 아직 새 쓰기가 없다면 `DATABASE_URL`을 Supabase 복구용 구성으로 되돌리는 것이 아니라 기존 애플리케이션 릴리스와 Supabase 런타임 경로를 함께 복원해야 한다. 새 쓰기가 한 건이라도 발생했다면 단순 연결 롤백은 데이터를 갈라놓으므로 금지하며, 점검 모드로 전환한 뒤 백업 복원 또는 단방향 보정 계획을 세운다.
 
-Supabase Auth·RLS·RPC·Edge Function·pg_cron 제거는 Django 인증 전환과 비밀번호 재설정 검증이 끝나는 5단계에서만 수행한다.
+Supabase Auth·RLS·RPC·Edge Function·pg_cron 제거는 별도의 Supabase 종료 작업에서만 수행한다.
