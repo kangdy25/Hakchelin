@@ -144,11 +144,10 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 
 로컬 API 전환은 완료됐지만 운영 마이그레이션은 아직 끝나지 않았다.
 
-1. Supabase direct DB URL을 준비해 구현된 ETL의 스테이징 dry-run과 실제 대조를 실행한다.
-2. 기존 Supabase Auth 사용자에게 Resend 비밀번호 재설정 메일을 발송한다.
-3. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
-4. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
-5. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
+1. 기존 Supabase Auth 사용자에게 Resend 비밀번호 재설정 메일을 발송한다.
+2. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
+3. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
+4. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
 
 Supabase SQL과 Edge Function 파일은 이 단계가 끝날 때까지 ETL 원본과 복구 대조 자료로 보존한다.
 
@@ -169,4 +168,6 @@ ETL은 사용자→메뉴→예약→거래·주문→AI 데이터 순으로 실
 
 GitHub Actions의 backend job에는 PostgreSQL 17 서비스를 추가했다. SQLite 테스트는 빠른 기본 검증으로 남기고, CI에서는 실제 PostgreSQL의 `select_for_update`를 사용해 정원 1개에 대한 동시 예약 두 건 중 한 건만 성공하는지, 동일 주문 동시 승인에서도 충전 거래가 한 건만 생기는지를 확인한다. 로컬 임시 PostgreSQL 17에서도 전체 20개 테스트가 통과했다.
 
-Neon 스테이징에는 Django migration 전체를 적용했고 실제 생성된 인덱스·제약 조건이 자동 대조 목록과 일치함을 확인했다. Supabase 원본 direct 연결 문자열이 준비되면 [Neon 컷오버 런북](./runbooks/neon-cutover.md)에 따라 dry-run과 실제 스테이징 대조를 수행한다.
+Neon 스테이징에는 Django migration 전체를 적용했고 실제 생성된 인덱스·제약 조건이 자동 대조 목록과 일치함을 확인했다. Supabase Session pooler를 통한 dry-run에서는 사용자 22, 메뉴 17, 예약 32, 거래 93, 주문 52, 프롬프트 3, AI 로그 61, 대화 22건 등 총 302건이 유효성·외래키·대상 제약을 통과했으며 대상 쓰기는 모두 롤백됐다.
+
+이후 같은 원본으로 실제 스테이징 ETL을 실행했고 명령 내부 자동 대조와 별도 `verify_supabase_migration` 재검증이 모두 `ok: true`를 반환했다. 8개 테이블의 누락·추가 PK는 0건이었고 사용자 포인트 총합은 원본·대상 모두 2,246,000점이었다. 예약 상태는 노쇼 17·사용 3·취소 12건, 충전 주문은 대기 43·결제 완료 9건으로 일치했으며 필수 인덱스와 unique 제약도 모두 확인했다.
