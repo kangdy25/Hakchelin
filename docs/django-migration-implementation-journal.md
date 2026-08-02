@@ -17,7 +17,7 @@
 | 프런트 읽기 연동 | [#5](https://github.com/kangdy25/Hakchelin/pull/5) | 메뉴·프로필·예약·거래 이력을 Django 생성 클라이언트로 우선 전환 |
 | 로컬 Django REST 컷오버 | [#6](https://github.com/kangdy25/Hakchelin/pull/6) | 인증·읽기·쓰기·관리자·결제·챗봇·정기 작업을 Django로 전환하고 프런트 Supabase 런타임 제거 |
 | Neon 컷오버 기반 | 완료 | Neon 스키마, 멱등 ETL, 자동 대조, 쓰기 차단, PostgreSQL 동시성 검증 구현 |
-| 레거시 BaaS 종료 | 이번 PR | SQL·Edge Function·ETL 앱·환경 변수 제거와 CI 경계 검사 추가 |
+| 레거시 BaaS 종료 | [#23](https://github.com/kangdy25/Hakchelin/pull/23) | SQL·Edge Function·ETL 앱·환경 변수 제거와 CI 경계 검사 추가 |
 
 각 단계는 `codex/` 브랜치에서 한국어 Conventional Commit으로 작업했고, CI 통과 후 merge commit으로 병합했다.
 
