@@ -237,3 +237,5 @@ Vercel Hakchelin project에 `www.hakchelin.cloud`를 추가하고 `hakchelin.clo
 완료된 마이그레이션의 설계 판단과 문제 해결 과정은 문서에 과거 기록으로 남겼지만 실행 가능한 애플리케이션·배포 경로에는 관련 SDK, URL, 키, 호출 코드가 없다. CI의 `scripts/check-runtime-boundaries.sh`가 `frontend`, `backend`, `packages`, `infra`, workflow와 lockfile을 검사해 같은 의존성이 다시 들어오면 즉시 실패한다.
 
 종료 변경은 Ruff, migration drift, OpenAPI 재생성, API 클라이언트 타입 검사, Nuxt 타입 검사와 프로덕션 빌드를 통과했다. SQLite에서는 16개 테스트가 성공하고 PostgreSQL 17 일회용 컨테이너에서는 동시성 검증을 포함한 18개 전체 테스트가 성공했다.
+
+2026-08-02 최신 retirement merge SHA가 Lightsail에 배포되고 Vercel·Lightsail의 Supabase 환경 변수 제거와 외부 health를 확인했다. 이후 CLI에서 이름·리전·상태가 일치하는 `Smart-Campus-Meal` 원격 프로젝트 하나만 영구 삭제했다. 삭제 응답과 후속 프로젝트 목록에서 대상 제거를 확인했으며, 직후 `https://hakchelin.cloud`와 Django `/healthz`가 계속 정상 응답해 최종 런타임 독립성을 검증했다.
