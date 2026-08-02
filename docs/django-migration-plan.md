@@ -1,6 +1,6 @@
 # 학슐랭 Django 전환: 프런트·백엔드 분리 모노레포
 
-> 상태: 1·2단계와 로컬 Django REST 컷오버 완료, Neon 데이터 이전·운영 전환 대기
+> 상태: 2026-08-02 전체 전환 완료. 아래 단계는 구현 당시의 계획과 판단을 보존한 기록이다.
 > 목표: 월 인프라 예산 2만 원 이하에서 Nuxt·Supabase 중심 구조를 Django·Neon 중심 구조로 단계 전환한다.
 
 실제 구현 결과와 검증 기록은 [Django 마이그레이션 구현 일지](./django-migration-implementation-journal.md), 문제 해결 과정은 [트러블슈팅 일지](./troubleshooting/django-migration.md)를 참고한다.
@@ -42,7 +42,6 @@ packages/
   api-client/          OpenAPI 기반 TypeScript 타입·클라이언트
 infra/
   lightsail/           Docker Compose, Caddy, 배포 설정
-supabase/              전환 완료 전의 레거시 SQL·Edge Function
 docs/
   django-migration-plan.md
 ```
@@ -109,22 +108,19 @@ docs/
 5. 전환 시간에는 쓰기 요청을 중지하고, 데이터 수량·UUID·포인트 합계·예약·거래·인덱스·제약 조건을 대조한다.
 6. 검증이 끝나면 Django의 DB 연결을 Neon으로 교체한다. 이후에는 이중 기록을 하지 않는다.
 
-### 단계 4 — 운영 인증 전환과 Supabase 서비스 종료
+### 단계 4 — 운영 인증 전환과 레거시 서비스 종료
 
-로컬에서 완료한 범위:
+완료한 범위:
 
 1. Django 세션 기반 회원가입·로그인·로그아웃·현재 사용자 API를 활성화했다.
 2. Nuxt는 `credentials: include`와 CSRF 헤더로 Django API를 호출한다.
 3. 프런트엔드 Supabase SDK, 직접 조회, RPC, Edge Function 런타임 의존성을 제거했다.
 4. Edge Function의 Toss 승인과 `pg_cron`의 노쇼 처리를 Django·Celery로 이전했다.
 
-운영 컷오버에서 남은 범위:
-
-1. 기존 사용자에게 Resend 비밀번호 재설정 링크를 발송한다.
-2. 세션 인증을 유지할지 access/refresh 토큰 방식으로 전환할지 운영 도메인 구조에 맞춰 확정한다.
-3. 토큰 방식을 선택하면 Secure·HttpOnly access/refresh 쿠키와 토큰 갱신 API를 구현한다.
-4. 운영 도메인에서 CORS·CSRF·Secure·SameSite 쿠키 정책을 검증한다.
-5. Neon ETL, 안정화와 백업 복원 검증 후 Supabase Auth, RLS와 서비스 리소스를 종료한다.
+5. 기존 계정은 합의한 정책에 따라 unusable password 상태로 유지하고 별도 재설정 안내를 발송하지 않았다.
+6. 운영 도메인에서 세션 인증, CORS·CSRF·Secure·SameSite 쿠키 정책을 검증했다.
+7. Neon ETL과 원본·대상 대조, 백업 복원 리허설을 마친 뒤 레거시 SQL·함수·이관 도구를 저장소에서 제거했다.
+8. CI가 애플리케이션·배포 경로의 레거시 BaaS 참조 재유입을 차단한다.
 
 ## 5. 운영과 검증
 
@@ -135,8 +131,8 @@ docs/
 
 ### 완료 기준
 
-- Nuxt에서 Supabase `.from()`, `.rpc()`, Edge Function 직접 호출이 제거된다.
-- 기존 사용자 UUID와 메뉴·예약·포인트·거래·챗봇 데이터가 Neon에서 정확히 유지된다.
-- 동시 예약, 정원 초과, 중복 결제 승인, 타인 데이터 접근, 관리자 권한, 취소·환불 규칙을 자동 테스트한다.
-- 챗봇의 인젝션 차단, 본인 데이터 격리, 일일 제한, SSE 최종 답변, 7일 대화 삭제를 검증한다.
-- OpenAPI 변경 시 TypeScript 클라이언트 재생성과 Nuxt 타입 검사가 CI에서 수행된다.
+- [x] Nuxt의 직접 데이터베이스·RPC·원격 함수 호출을 제거했다.
+- [x] 기존 사용자 UUID와 메뉴·예약·포인트·거래·챗봇 데이터가 Neon에서 정확히 유지됨을 대조했다.
+- [x] 동시 예약, 정원 초과, 중복 결제 승인, 타인 데이터 접근, 관리자 권한, 취소·환불 규칙을 자동 테스트한다.
+- [x] 챗봇의 본인 데이터 격리, SSE 최종 답변, 오류 처리, 7일 대화 삭제를 검증한다.
+- [x] OpenAPI 변경 시 TypeScript 클라이언트 재생성과 Nuxt 타입 검사가 CI에서 수행된다.

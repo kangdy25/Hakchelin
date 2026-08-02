@@ -4,13 +4,12 @@
 
 ## 백업 생성
 
-로컬 `backend/.env`의 `NEON_DATABASE_URL`을 사용할 때는 다음처럼 실행한다.
+로컬 `backend/.env`의 `DATABASE_URL`을 사용할 때는 다음처럼 실행한다.
 
 ```bash
 infra/lightsail/scripts/backup-neon.sh \
   backend/.env \
-  /tmp/hakchelin-backups \
-  NEON_DATABASE_URL
+  /tmp/hakchelin-backups
 ```
 
 Lightsail의 운영 환경 파일에서는 `DATABASE_URL`이 기본값이므로 세 번째 인자를 생략한다.

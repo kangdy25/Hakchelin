@@ -94,6 +94,6 @@ sudo docker compose --env-file /etc/hakchelin/compose.env -f infra/lightsail/doc
 3. `/healthz`, `/api/schema/`, 챗봇 SSE, Celery Beat 로그를 점검한다.
 4. 문제가 있으면 이전 검증된 SHA image를 [자동 배포 런북](./automated-deployment.md)의 절차로 다시 기동한다. DB migration은 되돌리지 않으며, 데이터 복원은 검증된 Neon 백업 절차로만 수행한다.
 
-Supabase Auth/RLS/RPC/Edge Function 삭제는 운영 검증 및 백업 복원 리허설이 끝난 뒤 별도 승인으로 수행한다.
+레거시 BaaS 런타임과 데이터 이관 도구는 운영 검증 및 백업 복원 리허설 뒤 저장소에서 제거했다. 운영 환경에는 `DATABASE_URL`로 지정한 Neon만 데이터베이스로 남긴다.
 
 운영 상태 점검과 장애 대응은 [운영 모니터링 런북](./operations-monitoring.md)을 따른다. Toss는 포트폴리오 검증용 테스트 결제만 유지하며 라이브 키로 전환하지 않는다.

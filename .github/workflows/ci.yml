@@ -18,6 +18,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: astral-sh/setup-uv@v6
+      - run: scripts/check-runtime-boundaries.sh
       - run: pnpm install --frozen-lockfile
       - run: uv --directory backend sync --all-groups --frozen
       - run: pnpm generate:api-client
