@@ -5,12 +5,13 @@
 - `frontend/`: Nuxt 4 / Vue 3 사용자·관리자 웹
 - `backend/`: Django / DRF / Celery 도메인 API
 - `packages/api-client/`: OpenAPI에서 생성한 TypeScript 클라이언트
-- `supabase/`: 전환 완료 전까지의 레거시 SQL·Edge Function이며 새 기능을 추가하지 않는다.
+- `infra/lightsail/`: Docker Compose, Caddy, 배포·백업·점검 자동화
 
 ## 개발 원칙
 
 - 프런트엔드는 생성 API 클라이언트만 통해 Django API와 통신한다.
-- 새 Supabase `.from()`, `.rpc()`, Edge Function 직접 호출을 추가하지 않는다.
+- 인증·데이터·예약·결제·챗봇 상태는 Django API와 Neon만을 기준으로 관리한다.
+- 외부 BaaS SDK, 데이터베이스 직접 조회, 원격 함수 호출을 프런트엔드에 추가하지 않는다.
 - Django view는 얇게 유지하고 예약·결제·포인트·권한 규칙은 서비스 계층에 둔다.
 - 금전 또는 정원에 영향을 주는 작업은 PostgreSQL 트랜잭션과 행 잠금을 사용한다.
 - API 계약 변경 시 OpenAPI 생성 클라이언트도 함께 갱신하고 커밋한다.

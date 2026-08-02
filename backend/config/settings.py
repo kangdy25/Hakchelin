@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     "wallet",
     "payments",
     "chatbot",
-    "migration_tools",
 ]
 
 MIDDLEWARE = [
@@ -71,12 +70,6 @@ DATABASES = {
         conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", "0")),
     )
 }
-
-if neon_database_url := os.getenv("NEON_DATABASE_URL"):
-    DATABASES["neon"] = dj_database_url.parse(
-        neon_database_url,
-        conn_max_age=int(os.getenv("DATABASE_CONN_MAX_AGE", "0")),
-    )
 
 DJANGO_WRITE_BLOCKED = os.getenv("DJANGO_WRITE_BLOCKED", "false").lower() == "true"
 

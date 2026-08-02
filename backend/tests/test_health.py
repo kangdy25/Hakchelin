@@ -15,4 +15,3 @@ def test_openapi_schema_is_available():
     assert b"cookieAuth" in response.content
     assert b"/api/auth/login/" in response.content
     assert b"/api/reservations/" in response.content
-    assert b"SupabaseJWT" not in response.content
