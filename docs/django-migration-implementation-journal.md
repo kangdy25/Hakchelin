@@ -1,8 +1,8 @@
 # Django 마이그레이션 구현 일지
 
-> 기록 범위: 모노레포 기반 구축부터 로컬 Django REST 컷오버까지
+> 기록 범위: 모노레포 기반 구축부터 운영 안정화와 레거시 BaaS 종료까지
 >
-> 현재 상태: Neon 스테이징 ETL·대조 완료, Lightsail 운영 배포 준비 중
+> 현재 상태: Vue 3/Nuxt·Django·Neon 운영 전환과 의존성 제거 완료
 
 이 문서는 학슐랭을 Nuxt·Supabase 구조에서 Nuxt·Django 구조로 옮기며 실제로 구현한 내용과 검증 결과를 시간순으로 정리한다. 문제의 증상·원인·해결 과정은 [Django 마이그레이션 트러블슈팅 일지](./troubleshooting/django-migration.md)에 별도로 기록한다.
 
@@ -16,7 +16,8 @@
 | 트러블슈팅 문서화 | [#4](https://github.com/kangdy25/Hakchelin/pull/4) | 1~3단계의 빌드·인증·트랜잭션 문제 기록 |
 | 프런트 읽기 연동 | [#5](https://github.com/kangdy25/Hakchelin/pull/5) | 메뉴·프로필·예약·거래 이력을 Django 생성 클라이언트로 우선 전환 |
 | 로컬 Django REST 컷오버 | [#6](https://github.com/kangdy25/Hakchelin/pull/6) | 인증·읽기·쓰기·관리자·결제·챗봇·정기 작업을 Django로 전환하고 프런트 Supabase 런타임 제거 |
-| Neon 컷오버 기반 | 진행 중 | Neon 스키마, 멱등 ETL, 자동 대조, 쓰기 차단, PostgreSQL 동시성 검증 구현 |
+| Neon 컷오버 기반 | 완료 | Neon 스키마, 멱등 ETL, 자동 대조, 쓰기 차단, PostgreSQL 동시성 검증 구현 |
+| 레거시 BaaS 종료 | 이번 PR | SQL·Edge Function·ETL 앱·환경 변수 제거와 CI 경계 검사 추가 |
 
 각 단계는 `codex/` 브랜치에서 한국어 Conventional Commit으로 작업했고, CI 통과 후 merge commit으로 병합했다.
 
@@ -140,17 +141,11 @@ Nuxt 화면은 Django 내부 모델이나 데이터베이스를 알지 않는다
 
 자세한 진단 과정과 배운 점은 [트러블슈팅 일지](./troubleshooting/django-migration.md)를 참고한다.
 
-## 8. 아직 남은 작업
+## 8. 운영 전환 정책
 
-로컬 API 전환은 완료됐지만 운영 마이그레이션은 아직 끝나지 않았다.
+기존 계정은 이관 시 UUID와 프로필을 보존하되 **unusable password 상태로 유지**한다. 서비스 전환 안내나 비밀번호 재설정 메일은 보내지 않으며, 이후 실제 사용이 필요한 계정은 Django 회원가입으로 새로 만든다.
 
-1. 운영 도메인에서 Secure 쿠키, CORS, CSRF, Caddy TLS를 검증한다.
-2. 실제 Toss·Gemini staging 키로 승인 실패·타임아웃·SSE 오류 경로를 검증한다.
-3. DB 백업 생성과 복원 리허설 뒤 운영 컷오버를 진행한다.
-
-기존 Supabase 계정은 이관 시 UUID와 프로필을 보존하되 **unusable password 상태로 유지**한다. 서비스 전환 안내나 비밀번호 재설정 메일은 보내지 않으며, 이후 실제 사용이 필요한 계정은 Django 회원가입으로 새로 만든다.
-
-Supabase SQL과 Edge Function 파일은 이 단계가 끝날 때까지 ETL 원본과 복구 대조 자료로 보존한다.
+운영 도메인의 세션·CSRF·CORS·TLS, Toss 테스트 결제, Gemini 대화, Neon 백업 복원을 검증했다. 데이터 이관에만 쓰던 SQL·Edge Function 원본과 ETL 명령은 복원 리허설 성공 뒤 제거한다.
 
 ## 9. 4단계 — Neon 컷오버 기반 구현
 
@@ -234,3 +229,11 @@ Vercel Hakchelin project에 `www.hakchelin.cloud`를 추가하고 `hakchelin.clo
 가비아 CNAME 추가 뒤 public DNS에서 `79c72787ec396ec2.vercel-dns-017.com`을 확인했고 Vercel config도 `misconfigured: false`로 전환됐다. Vercel edge에서 `www.hakchelin.cloud` 인증서 검증이 성공했으며 HTTP/2 308과 `Location: https://hakchelin.cloud/`이 정확히 반환됐다. 로컬 macOS resolver에는 추가 전 NXDOMAIN이 잠시 남았지만 authoritative/public DNS와 실제 edge 요청은 모두 정상이라 TTL 만료 뒤 자연 해소되는 상태로 판단했다.
 
 최초 외부 `Production health` 실행은 DNS·TLS가 아니라 redirect 값을 받는 Bash `read`에서 실패했다. `curl --write-out` 결과에 마지막 개행이 없어 값은 채워졌지만 EOF로 `read`가 종료 코드 1을 반환했고 `bash -e`가 assertion 전에 중단했다. workflow와 로컬 검증 script의 출력에 명시적인 개행을 넣어 같은 `308`·target 계약을 안정적으로 검사하도록 보완했다.
+
+## 16. 레거시 BaaS 종료
+
+운영 서비스가 Nuxt·Django·Neon 경로만으로 정상 동작하고 Neon 논리 백업의 격리 복원까지 성공한 뒤 종료 작업을 진행했다. 저장소의 레거시 SQL·Edge Function과 CLI 연결 메타데이터, Django의 일회성 ETL 앱·명령·테스트를 제거하고 `NEON_DATABASE_URL`, `SUPABASE_DATABASE_URL` 같은 이관 전용 환경 변수도 폐기했다.
+
+완료된 마이그레이션의 설계 판단과 문제 해결 과정은 문서에 과거 기록으로 남겼지만 실행 가능한 애플리케이션·배포 경로에는 관련 SDK, URL, 키, 호출 코드가 없다. CI의 `scripts/check-runtime-boundaries.sh`가 `frontend`, `backend`, `packages`, `infra`, workflow와 lockfile을 검사해 같은 의존성이 다시 들어오면 즉시 실패한다.
+
+종료 변경은 Ruff, migration drift, OpenAPI 재생성, API 클라이언트 타입 검사, Nuxt 타입 검사와 프로덕션 빌드를 통과했다. SQLite에서는 16개 테스트가 성공하고 PostgreSQL 17 일회용 컨테이너에서는 동시성 검증을 포함한 18개 전체 테스트가 성공했다.
