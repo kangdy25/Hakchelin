@@ -10,11 +10,17 @@ from wallet.models import PointTransaction
 
 
 class UserSummarySerializer(serializers.Serializer):
+    """
+    타 도메인(예약, 포인트 거래, AI 로그 등)에 포함하기 위한 간소화된 사용자 정보 시리얼라이저.
+
+    민감한 인증 정보(이메일, 잔여 포인트 등)를 배제하고 표시 목적의 최소 필드만 직렬화합니다.
+    """
     name = serializers.CharField()
     student_id = serializers.CharField()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """사용자 상세 프로필 조회 전용 ModelSerializer"""
     class Meta:
         model = User
         fields = ["id", "email", "role", "student_id", "name", "current_point", "created_at"]
@@ -30,11 +36,22 @@ class MenuSummarySerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
+    """
+    사용자 로그인 요청 처리를 위한 인증 시리얼라이저.
+
+    이메일과 비밀번호 필드를 수신하며, 비밀번호는 직렬화(응답) 시 누출되지 않도록 처리합니다.
+    """
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
 
 class SignupSerializer(LoginSerializer):
+    """
+    신규 회원가입을 위한 요청 데이터 검증 시리얼라이저.
+
+    LoginSerializer를 상속받아 이메일/비밀번호 필드를 재사용하며,
+    추가적인 실명, 학번 입력값 및 Django 내장 패스워드 복잡도 검증을 수행합니다.
+    """
     name = serializers.CharField(max_length=100)
     student_id = serializers.CharField(max_length=64)
 
@@ -130,6 +147,7 @@ class AdminPointSerializer(AmountSerializer):
 
 
 class AdminRoleSerializer(serializers.Serializer):
+    """관리자 API에서 특정 사용자의 권한/역할(Role)을 변경할 때 사용하는 시리얼라이저"""
     role = serializers.ChoiceField(choices=User.Role.choices)
 
 

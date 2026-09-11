@@ -53,17 +53,33 @@ from wallet.services import WalletError, donate_points
 
 
 class DjangoAuthenticatedView(APIView):
+    """
+    세션 인증 및 로그인 여부 검증이 필요한 API 뷰의 공통 기본 클래스.
+
+    모든 하위 뷰에 Django 세션 인증(SessionAuthentication)과
+    로그인 필수 권한(IsAuthenticated)을 기본으로 적용합니다.
+    """
     authentication_classes = [SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
 
 class AdminPermission(permissions.BasePermission):
+    """
+    관리자(Admin) 권한 확인을 위한 커스텀 Permission 클래스.
+
+    요청자가 인증된 상태이며 사용자 역할(role)이 ADMIN인 경우에만 접근을 허용합니다.
+    """
     def has_permission(self, request, view):
         return bool(request.user.is_authenticated and request.user.role == User.Role.ADMIN)
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class CsrfView(APIView):
+    """
+    클라이언트에 CSRF 쿠키를 주입하기 위한 엔드포인트.
+
+    SPA/프론트엔드 애플리케이션 초기 로드 시 호출되어 브라우저에 'csrftoken' 쿠키를 세팅합니다.
+    """
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(responses=CsrfReadySerializer)
@@ -73,6 +89,11 @@ class CsrfView(APIView):
 
 @method_decorator(csrf_protect, name="dispatch")
 class LoginView(APIView):
+    """
+    이메일과 비밀번호 기반의 세션 로그인 처리 뷰.
+
+    인증 성공 시 Django 세션을 시작하고 로그인된 사용자 정보를 반환합니다.
+    """
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(request=LoginSerializer, responses=UserSerializer)
@@ -92,6 +113,11 @@ class LoginView(APIView):
 
 @method_decorator(csrf_protect, name="dispatch")
 class SignupView(APIView):
+    """
+    신규 사용자 회원가입 처리 뷰.
+
+    이메일/학번 중복 검사 및 패스워드 정책 검증을 통과한 신규 계정을 생성합니다.
+    """
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(request=SignupSerializer, responses={201: UserSerializer})
@@ -113,6 +139,11 @@ class SignupView(APIView):
 
 
 class LogoutView(DjangoAuthenticatedView):
+    """
+    사용자 로그아웃 처리 뷰.
+
+    현재 브라우저에 할당된 세션 데이터를 파기합니다.
+    """
     @extend_schema(request=None, responses={204: None})
     def post(self, request):
         logout(request)
@@ -120,6 +151,7 @@ class LogoutView(DjangoAuthenticatedView):
 
 
 class MeView(DjangoAuthenticatedView):
+    """현재 로그인된 사용자의 본인 프로필 정보 조회 뷰"""
     @extend_schema(responses=UserSerializer)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
@@ -302,6 +334,7 @@ class PointPaymentConfirmView(DjangoAuthenticatedView):
 
 
 class AdminUsersView(DjangoAuthenticatedView):
+    """[관리자 전용] 전체 사용자 목록 조회 뷰"""
     permission_classes = [AdminPermission]
 
     @extend_schema(responses=UserSerializer(many=True))
@@ -337,6 +370,11 @@ class AdminAiLogsView(DjangoAuthenticatedView):
 
 
 class AdminUserPointsView(DjangoAuthenticatedView):
+    """
+    [관리자 전용] 특정 사용자의 포인트를 강제 지급/차감하는 뷰.
+
+    동시성 이슈를 방어하기 위해 DB 비관적 락(select_for_update)과 트랜잭션을 적용합니다.
+    """
     permission_classes = [AdminPermission]
 
     @extend_schema(request=AdminPointSerializer, responses=UserSerializer)
@@ -360,6 +398,7 @@ class AdminUserPointsView(DjangoAuthenticatedView):
 
 
 class AdminUserRoleView(DjangoAuthenticatedView):
+    """[관리자 전용] 특정 사용자의 시스템 역할(Role)을 변경하는 뷰"""
     permission_classes = [AdminPermission]
 
     @extend_schema(request=AdminRoleSerializer, responses=UserSerializer)

@@ -7,6 +7,11 @@ from django.db import models
 
 
 class UserManager(BaseUserManager):
+    """
+    User 모델 생성을 전담하는 커스텀 매니저 클래스.
+
+    일반 사용자 및 관리자(Superuser) 계정 생성 로직을 제공합니다.
+    """
     use_in_migrations = True
 
     def create_user(self, email: str, password: str | None = None, **extra_fields):
@@ -27,6 +32,11 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    """
+    이메일 기반 로그인을 지원하는 커스텀 사용자 모델.
+
+    기본 인증 필드로 email을 사용하며, 권한 관리, 학번, 역할, 포인트 필드를 포함합니다.
+    """
     class Role(models.TextChoices):
         STUDENT = "student", "Student"
         ADMIN = "admin", "Admin"
