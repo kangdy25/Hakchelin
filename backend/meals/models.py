@@ -9,6 +9,11 @@ def new_menu_id() -> str:
 
 
 class Menu(models.Model):
+    """
+    식당 메뉴 및 예약 기본 정보를 관리하는 모델.
+
+    식사 날짜, 제공 시간, 식단 유형, 수용 가능 인원 및 예약 보증금, 예약 마감 시점을 포함합니다.
+    """
     class Type(models.TextChoices):
         KOREAN = "kr", "Korean"
         PREMIUM = "premium", "Premium"

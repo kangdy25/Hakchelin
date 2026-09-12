@@ -28,6 +28,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class MenuSummarySerializer(serializers.Serializer):
+    """
+    메뉴 전체 정보 조회(GET) 전용 ModelSerializer.
+
+    식단 일정, 가격, 예약 정원, 마감 시점 등 메뉴 엔티티의 모든 상세 필드를 클라이언트 응답 규격으로 직렬화합니다.
+    """
     title_ko = serializers.CharField()
     title_en = serializers.CharField()
     price = serializers.IntegerField()
@@ -62,6 +67,11 @@ class SignupSerializer(LoginSerializer):
 
 
 class MenuSerializer(serializers.ModelSerializer):
+    """
+    메뉴 전체 정보 조회(GET) 전용 ModelSerializer.
+
+    식단 일정, 가격, 예약 정원, 마감 시점 등 메뉴 엔티티의 모든 상세 필드를 클라이언트 응답 규격으로 직렬화합니다.
+    """
     class Meta:
         model = Menu
         fields = [
@@ -83,6 +93,11 @@ class MenuSerializer(serializers.ModelSerializer):
 
 
 class MenuWriteSerializer(serializers.ModelSerializer):
+    """
+    관리자 메뉴 신규 등록(POST) 및 부분 수정(PATCH) 전용 ModelSerializer.
+
+    클라이언트가 임의로 조작해서는 안 되는 식별자와 생성일시를 입력 대상에서 제외하여 Mass Assignment를 방지합니다.
+    """
     class Meta:
         model = Menu
         exclude = ["id", "created_at"]

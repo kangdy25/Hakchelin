@@ -158,6 +158,11 @@ class MeView(DjangoAuthenticatedView):
 
 
 class MenuListCreateView(APIView):
+    """
+    식단 목록 조회(GET) 및 신규 등록(POST)을 처리하는 뷰.
+
+    HTTP 메서드에 따라 동적으로 권한을 분기하여, 조회는 모든 사용자에게 허용하고 신규 등록은 관리자에게만 허용합니다.
+    """
     authentication_classes = [SessionAuthentication]
 
     def get_permissions(self):
@@ -187,6 +192,11 @@ class MenuListCreateView(APIView):
 
 
 class MenuDetailView(DjangoAuthenticatedView):
+    """
+    [관리자 전용] 특정 식단 메뉴의 상세 수정(PATCH) 및 비활성화/삭제(DELETE)를 처리하는 뷰.
+
+    기본적으로 DjangoAuthenticatedView를 상속하며, 관리자 권한(AdminPermission)으로 격리되어 있습니다.
+    """
     permission_classes = [AdminPermission]
 
     @extend_schema(request=MenuWriteSerializer, responses=MenuSerializer)
