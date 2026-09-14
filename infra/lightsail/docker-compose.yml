@@ -41,7 +41,8 @@ services:
     restart: unless-stopped
     env_file:
       - ${BACKEND_ENV_FILE:-../../backend/.env}
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --access-logfile -
+    # 소형 Lightsail 인스턴스의 메모리를 아끼면서 SSE 요청과 일반 API를 함께 처리한다.
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --threads 4 --timeout 90 --access-logfile -
     healthcheck:
       test:
         - CMD

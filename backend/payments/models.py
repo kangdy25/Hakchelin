@@ -6,6 +6,11 @@ from django.db import models
 
 
 class PointOrder(models.Model):
+    """
+    외부 PG사(토스페이먼츠)를 통한 포인트 충전 주문 및 결제 승인 내역을 관리하는 모델.
+
+    결제 전체 라이프사이클을 추적하며, PG사 결제 키(payment_key)의 고유성 제약과 원본 응답 스냅샷(toss_response) 저장을 통해 중복 결제 방지 및 감사(Audit) 추적 기능을 제공합니다.
+    """
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"

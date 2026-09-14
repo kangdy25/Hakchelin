@@ -7,6 +7,12 @@ from django.db.models import Q
 
 
 class PromptTemplate(models.Model):
+    """
+    LLM 프롬프트 템플릿의 버전 및 하이퍼파라미터를 동적으로 관리하는 모델.
+
+    서비스 재배포 없이 프롬프트를 A/B 테스트하거나 롤백할 수 있도록 버저닝을 지원하며,
+    DB 조건부 유니크 제약을 통해 서비스당 오직 하나의 활성 프롬프트만 허용합니다.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     service_name = models.CharField(max_length=100)
     version = models.PositiveIntegerField()
@@ -26,6 +32,12 @@ class PromptTemplate(models.Model):
 
 
 class AiLog(models.Model):
+    """
+    LLM 추론 파이프라인의 각 단계별 실행 결과, 지연 시간, 토큰 소모량 및 에러를 기록하는 감사 로그 모델.
+
+    프롬프트 인젝션 방어, 가드레일, 본 대화 생성의 3단계 파이프라인을 분기 추적하며,
+    운영 비용 정산(USD)과 시스템 장애 디버깅을 위한 관측성 데이터를 제공합니다.
+    """
     class Stage(models.TextChoices):
         VALIDATION = "validation", "Validation"
         GUARDRAIL = "guardrail", "Guardrail"
@@ -53,6 +65,12 @@ class AiLog(models.Model):
 
 
 class ChatMessage(models.Model):
+    """
+    사용자와 AI 어시스턴트 간의 대화 세션 메시지를 저장하는 모델.
+
+    컨텍스트 기반 멀티턴(Multi-turn) 대화를 위해 이전 대화 내역을 제공하며,
+    개인정보 보호 및 스토리지 관리를 위해 Celery 배치 태스크로 7일 경과 시 자동 삭제됩니다.
+    """
     class Role(models.TextChoices):
         USER = "user", "User"
         ASSISTANT = "assistant", "Assistant"

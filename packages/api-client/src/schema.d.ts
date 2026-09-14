@@ -11,6 +11,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description [관리자 전용] AI 추론 파이프라인 감사 로그 조회 뷰.
+         *
+         *     시스템 전반에서 발생한 LLM 호출 이력, 단계별 추론 성공 여부, 지연 시간(Latency),
+         *     에러 발생 내역을 최신순 상위 50건 조회하여 모니터링 대시보드에 제공합니다.
+         */
         get: operations["admin_ai_logs_list"];
         put?: never;
         post?: never;
@@ -27,6 +33,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description [관리자 전용] 시스템 전체 예약 현황 목록 조회 뷰.
+         *
+         *     식당 관리자가 예약 현황 및 노쇼/취소 통계를 모니터링할 수 있도록 전체 데이터를 최신순으로 제공합니다.
+         */
         get: operations["admin_reservations_list"];
         put?: never;
         post?: never;
@@ -45,6 +56,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description [관리자 전용] 특정 예약에 대한 상태 전이 액션(식권 사용 승인 또는 관리자 강제 취소)을 처리하는 뷰.
+         *
+         *     URL의 action 파라미터에 따라 'use' 또는 'cancel'을 분기 실행합니다.
+         */
         post: operations["admin_reservations_create"];
         delete?: never;
         options?: never;
@@ -59,6 +75,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description [관리자 전용] 시스템 전체 포인트 거래 내역 조회 뷰. */
         get: operations["admin_transactions_list"];
         put?: never;
         post?: never;
@@ -75,6 +92,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description [관리자 전용] 전체 사용자 목록 조회 뷰 */
         get: operations["admin_users_list"];
         put?: never;
         post?: never;
@@ -93,6 +111,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description [관리자 전용] 특정 사용자의 포인트를 강제 지급/차감하는 뷰.
+         *
+         *     동시성 이슈를 방어하기 위해 DB 비관적 락(select_for_update)과 트랜잭션을 적용합니다.
+         */
         post: operations["admin_users_points_create"];
         delete?: never;
         options?: never;
@@ -109,6 +132,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description [관리자 전용] 특정 사용자의 시스템 역할(Role)을 변경하는 뷰 */
         post: operations["admin_users_role_create"];
         delete?: never;
         options?: never;
@@ -123,6 +147,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description 클라이언트에 CSRF 쿠키를 주입하기 위한 엔드포인트.
+         *
+         *     SPA/프론트엔드 애플리케이션 초기 로드 시 호출되어 브라우저에 'csrftoken' 쿠키를 세팅합니다.
+         */
         get: operations["auth_csrf_retrieve"];
         put?: never;
         post?: never;
@@ -141,6 +170,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 이메일과 비밀번호 기반의 세션 로그인 처리 뷰.
+         *
+         *     인증 성공 시 Django 세션을 시작하고 로그인된 사용자 정보를 반환합니다.
+         */
         post: operations["auth_login_create"];
         delete?: never;
         options?: never;
@@ -157,6 +191,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 사용자 로그아웃 처리 뷰.
+         *
+         *     현재 브라우저에 할당된 세션 데이터를 파기합니다.
+         */
         post: operations["auth_logout_create"];
         delete?: never;
         options?: never;
@@ -173,6 +212,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 신규 사용자 회원가입 처리 뷰.
+         *
+         *     이메일/학번 중복 검사 및 패스워드 정책 검증을 통과한 신규 계정을 생성합니다.
+         */
         post: operations["auth_signup_create"];
         delete?: never;
         options?: never;
@@ -187,6 +231,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description 특정 대화 세션의 이전 메시지 이력 조회 뷰.
+         *
+         *     요청자 본인의 특정 대화 쓰레드(conversation_id)에 속한 메시지를
+         *     시간순으로 최대 30건 조회하여 클라이언트 화면에 말풍선 목록으로 렌더링합니다.
+         */
         get: operations["chat_list"];
         put?: never;
         post?: never;
@@ -205,6 +255,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description AI 어시스턴트의 SSE 응답 전달 및 대화 저장 처리 뷰.
+         *
+         *     클라이언트의 질문을 최근 대화 맥락과 함께 Gemini LLM 서비스에 전달하고,
+         *     생성되는 답변 조각을 SSE(text/event-stream)의 token 이벤트로 즉시 전송하고,
+         *     스트림이 정상적으로 끝나면 완성된 답변을 done 이벤트로 전송합니다.
+         *     사용자 발화와 AI 응답은 단일 원자적 트랜잭션 내에서 ChatMessage로 영구 보관됩니다.
+         */
         post: operations["chat_stream_create"];
         delete?: never;
         options?: never;
@@ -219,6 +277,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description 현재 로그인된 사용자의 본인 프로필 정보 조회 뷰 */
         get: operations["me_retrieve"];
         put?: never;
         post?: never;
@@ -235,8 +294,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description 식단 목록 조회(GET) 및 신규 등록(POST)을 처리하는 뷰.
+         *
+         *     HTTP 메서드에 따라 동적으로 권한을 분기하여, 조회는 모든 사용자에게 허용하고 신규 등록은 관리자에게만 허용합니다.
+         */
         get: operations["menus_list"];
         put?: never;
+        /**
+         * @description 식단 목록 조회(GET) 및 신규 등록(POST)을 처리하는 뷰.
+         *
+         *     HTTP 메서드에 따라 동적으로 권한을 분기하여, 조회는 모든 사용자에게 허용하고 신규 등록은 관리자에게만 허용합니다.
+         */
         post: operations["menus_create"];
         delete?: never;
         options?: never;
@@ -254,9 +323,19 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * @description [관리자 전용] 특정 식단 메뉴의 상세 수정(PATCH) 및 비활성화/삭제(DELETE)를 처리하는 뷰.
+         *
+         *     기본적으로 DjangoAuthenticatedView를 상속하며, 관리자 권한(AdminPermission)으로 격리되어 있습니다.
+         */
         delete: operations["menus_destroy"];
         options?: never;
         head?: never;
+        /**
+         * @description [관리자 전용] 특정 식단 메뉴의 상세 수정(PATCH) 및 비활성화/삭제(DELETE)를 처리하는 뷰.
+         *
+         *     기본적으로 DjangoAuthenticatedView를 상속하며, 관리자 권한(AdminPermission)으로 격리되어 있습니다.
+         */
         patch: operations["menus_partial_update"];
         trace?: never;
     };
@@ -269,6 +348,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 포인트 충전을 위한 사전 주문(PointOrder) 생성 뷰.
+         *
+         *     클라이언트로부터 충전 희망 금액을 입력받아 최소/최대 한도를 검증하고,
+         *     토스페이먼츠 결제창 호출 시 전달할 고유 주문 번호(order_id)를 발급합니다.
+         */
         post: operations["payments_point_orders_create"];
         delete?: never;
         options?: never;
@@ -285,6 +370,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 토스페이먼츠 결제창 인증 완료 후 최종 승인 확정 및 포인트 적립 뷰.
+         *
+         *     클라이언트가 토스 SDK로부터 전달받은 paymentKey, orderId, amount를 수신하여
+         *     금액 위변조 검증, 외부 PG사 승인 API 호출, 포인트 원자적 지급을 수행합니다.
+         */
         post: operations["payments_point_orders_confirm_create"];
         delete?: never;
         options?: never;
@@ -301,6 +392,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 식단 메뉴 신규 예약 신청 처리 뷰.
+         *
+         *     클라이언트로부터 메뉴 ID, 옵션, 예상 결제 총액을 수신하여 유효성을 검증한 뒤,
+         *     비즈니스 서비스 레이어(reserve_menu)를 호출해 원자적 결제 및 예약을 확정합니다.
+         */
         post: operations["reservations_create"];
         delete?: never;
         options?: never;
@@ -317,6 +414,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 사용자가 본인의 유효한 예약을 직접 취소하는 뷰.
+         *
+         *     예약 마감 시간 전/후 여부에 따라 보증금 공제 여부를 차등 적용하는 환불 정책을 수행합니다.
+         */
         post: operations["reservations_cancel_create"];
         delete?: never;
         options?: never;
@@ -331,6 +433,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description 현재 로그인된 사용자의 본인 식권/예약 내역 전체 조회 뷰.
+         *
+         *     세션 인증을 필수로 요구하며, 사용자 본인의 예약 목록을 최신순으로 반환합니다.
+         */
         get: operations["reservations_me_list"];
         put?: never;
         post?: never;
@@ -349,6 +456,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description 보유 포인트를 사용해 기부를 수행하는 뷰.
+         *
+         *     지갑 서비스 레이어(donate_points)를 호출하여 비관적 락 기반의 원자적 차감을 실행합니다.
+         */
         post: operations["wallet_donations_create"];
         delete?: never;
         options?: never;
@@ -363,6 +475,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description 현재 로그인한 사용자의 포인트 변동 내역(충전/차감/기부 등) 조회 뷰.
+         *
+         *     세션 인증을 필수로 요구하며 본인의 거래 기록만 역순(최신순)으로 제공합니다.
+         */
         get: operations["wallet_transactions_me_list"];
         put?: never;
         post?: never;
@@ -376,13 +493,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description [관리자 전용] 사용자 포인트 수동 지급/차감 처리 시리얼라이저.
+         *
+         *     AmountSerializer를 상속받아 금액 필드를 재사용하며, 감사 추적을 위해 필수적인 사유 설명 필드를 추가합니다.
+         */
         AdminPoint: {
             amount: number;
             description: string;
         };
+        /** @description 관리자 API에서 특정 사용자의 권한/역할(Role)을 변경할 때 사용하는 시리얼라이저 */
         AdminRole: {
             role: components["schemas"]["UserRoleEnum"];
         };
+        /**
+         * @description [관리자 전용] AI 추론 파이프라인 감사 로그 조회 전용 ModelSerializer.
+         *
+         *     추론 단계, 사용 모델, 응답 소요 시간(Latency), 에러 메시지와 요청자 요약 정보를 함께 직렬화하며,
+         *     감사 데이터의 무결성을 위해 전체 필드를 읽기 전용으로 제한합니다.
+         */
         AiLog: {
             /** Format: uuid */
             readonly id: string;
@@ -395,13 +524,26 @@ export interface components {
             readonly error_message: string;
             readonly users: components["schemas"]["UserSummary"] | null;
         };
+        /** @description 포인트 기부 또는 결제 주문 시 단일 금액(amount) 입력을 검증하는 기본 DTO */
         Amount: {
             amount: number;
         };
+        /**
+         * @description 대화 이력 조회 전용 ModelSerializer.
+         *
+         *     클라이언트 렌더링에 필요한 발화 주체와 대화 본문만 직렬화하며,
+         *     과거 메시지 위변조를 방지하기 위해 전체 필드를 읽기 전용으로 제한합니다.
+         */
         ChatMessage: {
             readonly role: components["schemas"]["ChatRoleEnum"];
             readonly content: string;
         };
+        /**
+         * @description AI 챗봇 질문 전송 및 스트리밍 요청 데이터 검증 DTO.
+         *
+         *     클라이언트로부터 사용자 질문 문자열과 대화 세션 식별자를 수신하여
+         *     질문 길이 제한(1~100자) 및 포맷 유효성을 검증합니다.
+         */
         ChatRequest: {
             message: string;
             /** Format: uuid */
@@ -413,14 +555,30 @@ export interface components {
          * @enum {string}
          */
         ChatRoleEnum: "user" | "assistant";
+        /**
+         * @description CSRF 쿠키 세팅 확인 응답 전용 스키마 DTO.
+         *
+         *     SPA/프론트엔드 초기화 시 브라우저에 'csrftoken' 쿠키가 정상 주입되었음을 알리는
+         *     상태 응답({"csrf": "ready"})의 직렬화 규격을 정의하며, drf-spectacular 문서화에 활용됩니다.
+         */
         CsrfReady: {
             csrf: string;
         };
+        /**
+         * @description 사용자 로그인 요청 처리를 위한 인증 시리얼라이저.
+         *
+         *     이메일과 비밀번호 필드를 수신하며, 비밀번호는 직렬화(응답) 시 누출되지 않도록 처리합니다.
+         */
         Login: {
             /** Format: email */
             email: string;
             password: string;
         };
+        /**
+         * @description 메뉴 전체 정보 조회(GET) 전용 ModelSerializer.
+         *
+         *     식단 일정, 가격, 예약 정원, 마감 시점 등 메뉴 엔티티의 모든 상세 필드를 클라이언트 응답 규격으로 직렬화합니다.
+         */
         Menu: {
             readonly id: string;
             day_of_week?: string;
@@ -443,6 +601,11 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
+        /**
+         * @description 메뉴 전체 정보 조회(GET) 전용 ModelSerializer.
+         *
+         *     식단 일정, 가격, 예약 정원, 마감 시점 등 메뉴 엔티티의 모든 상세 필드를 클라이언트 응답 규격으로 직렬화합니다.
+         */
         MenuSummary: {
             title_ko: string;
             title_en: string;
@@ -457,6 +620,11 @@ export interface components {
          * @enum {string}
          */
         MenuTypeEnum: "kr" | "premium" | "takeout";
+        /**
+         * @description 관리자 메뉴 신규 등록(POST) 및 부분 수정(PATCH) 전용 ModelSerializer.
+         *
+         *     클라이언트가 임의로 조작해서는 안 되는 식별자와 생성일시를 입력 대상에서 제외하여 Mass Assignment를 방지합니다.
+         */
         MenuWrite: {
             day_of_week?: string;
             type: components["schemas"]["MenuTypeEnum"];
@@ -476,6 +644,11 @@ export interface components {
             deposit_amount?: number;
             is_active?: boolean;
         };
+        /**
+         * @description 관리자 메뉴 신규 등록(POST) 및 부분 수정(PATCH) 전용 ModelSerializer.
+         *
+         *     클라이언트가 임의로 조작해서는 안 되는 식별자와 생성일시를 입력 대상에서 제외하여 Mass Assignment를 방지합니다.
+         */
         PatchedMenuWrite: {
             day_of_week?: string;
             type?: components["schemas"]["MenuTypeEnum"];
@@ -495,21 +668,42 @@ export interface components {
             deposit_amount?: number;
             is_active?: boolean;
         };
+        /**
+         * @description 포인트 충전 사전 주문 생성 응답 DTO.
+         *
+         *     클라이언트가 토스페이먼츠 SDK 결제창을 띄우는 데 필요한 식별 번호와 금액 정보를 직렬화합니다.
+         */
         PointOrder: {
             order_id: string;
             amount: number;
             point_amount: number;
         };
+        /**
+         * @description 토스페이먼츠 결제창 인증 완료 후 서버 최종 승인 요청 DTO.
+         *
+         *     클라이언트가 토스 SDK로부터 전달받은 인증 파라미터를 수신하여 금액 위변조 및 유효성을 검증합니다.
+         */
         PointPaymentConfirm: {
             payment_key: string;
             order_id: string;
             amount: number;
         };
+        /**
+         * @description 토스페이먼츠 최종 승인 완료 응답 DTO.
+         *
+         *     승인 확정된 주문 ID, 최종 주문 상태, 실제 충전 처리된 포인트 수량을 클라이언트에 반환합니다.
+         */
         PointPaymentResult: {
             order_id: string;
             status: string;
             point_amount: number;
         };
+        /**
+         * @description 포인트 거래(변동) 내역 조회 전용 ModelSerializer.
+         *
+         *     사용자 정보를 UserSummarySerializer를 통해 중첩 요약 객체로 직렬화하며,
+         *     거래내역 데이터의 위변조 방지를 위해 전체 필드를 읽기 전용(read_only)으로 설정합니다.
+         */
         PointTransaction: {
             /** Format: uuid */
             readonly id: string;
@@ -522,6 +716,12 @@ export interface components {
             readonly created_at: string;
             readonly users: components["schemas"]["UserSummary"];
         };
+        /**
+         * @description 예약 상세 및 목록 조회(GET) 전용 ModelSerializer.
+         *
+         *     예약 당사자 요약 정보(UserSummarySerializer)와 연결된 식단 정보(MenuSummarySerializer)를
+         *     중첩 구조로 함께 직렬화하며, 확정된 예약의 임의 수정을 방지하기 위해 전체 필드를 읽기 전용으로 설정합니다.
+         */
         Reservation: {
             /** Format: uuid */
             readonly id: string;
@@ -543,11 +743,22 @@ export interface components {
             readonly users: components["schemas"]["UserSummary"];
             readonly menus: components["schemas"]["MenuSummary"];
         };
+        /**
+         * @description 식단 메뉴 예약 요청(POST) 데이터 검증 시리얼라이저.
+         *
+         *     클라이언트로부터 식단 ID, 커스텀 옵션(JSON), 지불할 총금액을 전달받아 유효성을 검증합니다.
+         */
         ReservationCreate: {
             menu_id: string;
             options?: unknown;
             total_price: number;
         };
+        /**
+         * @description 신규 회원가입을 위한 요청 데이터 검증 시리얼라이저.
+         *
+         *     LoginSerializer를 상속받아 이메일/비밀번호 필드를 재사용하며,
+         *     추가적인 실명, 학번 입력값 및 Django 내장 패스워드 복잡도 검증을 수행합니다.
+         */
         Signup: {
             /** Format: email */
             email: string;
@@ -577,6 +788,7 @@ export interface components {
          * @enum {string}
          */
         TransactionTypeEnum: "charge" | "deduct" | "refund";
+        /** @description 사용자 상세 프로필 조회 전용 ModelSerializer */
         User: {
             /** Format: uuid */
             readonly id: string;
@@ -595,6 +807,11 @@ export interface components {
          * @enum {string}
          */
         UserRoleEnum: "student" | "admin";
+        /**
+         * @description 타 도메인(예약, 포인트 거래, AI 로그 등)에 포함하기 위한 간소화된 사용자 정보 시리얼라이저.
+         *
+         *     민감한 인증 정보(이메일, 잔여 포인트 등)를 배제하고 표시 목적의 최소 필드만 직렬화합니다.
+         */
         UserSummary: {
             name: string;
             student_id: string;
