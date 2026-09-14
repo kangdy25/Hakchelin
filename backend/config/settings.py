@@ -143,11 +143,14 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# 토스페이먼츠 API 인증 시크릿 키 (테스트/라이브 환경 분기)
 TOSS_PAYMENTS_SECRET_KEY = os.getenv("TOSS_PAYMENTS_SECRET_KEY", "")
+# 토스페이먼츠 결제 최종 승인 API 엔드포인트 URL
 TOSS_PAYMENTS_CONFIRM_URL = os.getenv(
     "TOSS_PAYMENTS_CONFIRM_URL",
     "https://api.tosspayments.com/v1/payments/confirm",
 )
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 GEMINI_REQUEST_TIMEOUT_SECONDS = float(os.getenv("GEMINI_REQUEST_TIMEOUT_SECONDS", "45"))

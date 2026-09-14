@@ -190,18 +190,33 @@ class AdminRoleSerializer(serializers.Serializer):
 
 
 class PointOrderSerializer(serializers.Serializer):
+    """
+    포인트 충전 사전 주문 생성 응답 DTO.
+
+    클라이언트가 토스페이먼츠 SDK 결제창을 띄우는 데 필요한 식별 번호와 금액 정보를 직렬화합니다.
+    """
     order_id = serializers.CharField()
     amount = serializers.IntegerField()
     point_amount = serializers.IntegerField()
 
 
 class PointPaymentConfirmSerializer(serializers.Serializer):
+    """
+    토스페이먼츠 결제창 인증 완료 후 서버 최종 승인 요청 DTO.
+
+    클라이언트가 토스 SDK로부터 전달받은 인증 파라미터를 수신하여 금액 위변조 및 유효성을 검증합니다.
+    """
     payment_key = serializers.CharField(max_length=255)
     order_id = serializers.CharField(max_length=100)
     amount = serializers.IntegerField(min_value=1)
 
 
 class PointPaymentResultSerializer(serializers.Serializer):
+    """
+    토스페이먼츠 최종 승인 완료 응답 DTO.
+
+    승인 확정된 주문 ID, 최종 주문 상태, 실제 충전 처리된 포인트 수량을 클라이언트에 반환합니다.
+    """
     order_id = serializers.CharField()
     status = serializers.CharField()
     point_amount = serializers.IntegerField()

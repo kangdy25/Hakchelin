@@ -326,6 +326,12 @@ class DonationView(DjangoAuthenticatedView):
 
 
 class PointOrderView(DjangoAuthenticatedView):
+    """
+    포인트 충전을 위한 사전 주문(PointOrder) 생성 뷰.
+
+    클라이언트로부터 충전 희망 금액을 입력받아 최소/최대 한도를 검증하고,
+    토스페이먼츠 결제창 호출 시 전달할 고유 주문 번호(order_id)를 발급합니다.
+    """
     @extend_schema(request=AmountSerializer, responses={201: PointOrderSerializer})
     def post(self, request):
         serializer = AmountSerializer(data=request.data)
@@ -338,12 +344,20 @@ class PointOrderView(DjangoAuthenticatedView):
 
 
 class PointPaymentConfirmView(DjangoAuthenticatedView):
+    """
+    토스페이먼츠 결제창 인증 완료 후 최종 승인 확정 및 포인트 적립 뷰.
+
+    클라이언트가 토스 SDK로부터 전달받은 paymentKey, orderId, amount를 수신하여
+    금액 위변조 검증, 외부 PG사 승인 API 호출, 포인트 원자적 지급을 수행합니다.
+    """
     @extend_schema(request=PointPaymentConfirmSerializer, responses=PointPaymentResultSerializer)
     def post(self, request):
         serializer = PointPaymentConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
         order = get_object_or_404(PointOrder, order_id=data["order_id"], user=request.user)
+        
         if order.status == PointOrder.Status.PAID:
             return Response(
                 {
