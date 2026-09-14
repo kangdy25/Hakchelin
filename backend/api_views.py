@@ -357,7 +357,7 @@ class PointPaymentConfirmView(DjangoAuthenticatedView):
         data = serializer.validated_data
 
         order = get_object_or_404(PointOrder, order_id=data["order_id"], user=request.user)
-        
+
         if order.status == PointOrder.Status.PAID:
             return Response(
                 {
@@ -426,6 +426,12 @@ class AdminTransactionsView(DjangoAuthenticatedView):
 
 
 class AdminAiLogsView(DjangoAuthenticatedView):
+    """
+    [관리자 전용] AI 추론 파이프라인 감사 로그 조회 뷰.
+
+    시스템 전반에서 발생한 LLM 호출 이력, 단계별 추론 성공 여부, 지연 시간(Latency),
+    에러 발생 내역을 최신순 상위 50건 조회하여 모니터링 대시보드에 제공합니다.
+    """
     permission_classes = [AdminPermission]
 
     @extend_schema(responses=AiLogSerializer(many=True))
@@ -477,6 +483,12 @@ class AdminUserRoleView(DjangoAuthenticatedView):
 
 
 class ChatHistoryView(DjangoAuthenticatedView):
+    """
+    특정 대화 세션의 이전 메시지 이력 조회 뷰.
+
+    요청자 본인의 특정 대화 쓰레드(conversation_id)에 속한 메시지를
+    시간순으로 최대 30건 조회하여 클라이언트 화면에 말풍선 목록으로 렌더링합니다.
+    """
     @extend_schema(responses=ChatMessageSerializer(many=True))
     def get(self, request, conversation_id):
         queryset = ChatMessage.objects.filter(
@@ -487,14 +499,24 @@ class ChatHistoryView(DjangoAuthenticatedView):
 
 
 class ChatStreamView(DjangoAuthenticatedView):
+    """
+    AI 어시스턴트 실시간 응답 스트리밍 및 대화 저장 처리 뷰.
+
+    클라이언트의 질문을 수신하여 최근 대화 맥락과 함께 Gemini LLM 서비스를 호출하고,
+    SSE(text/event-stream) 규격으로 토큰/완료/에러 이벤트를 실시간 송출합니다.
+    사용자 발화와 AI 응답은 단일 원자적 트랜잭션 내에서 ChatMessage로 영구 보관됩니다.
+    """
     @extend_schema(
         request=ChatRequestSerializer,
         responses={(200, "text/event-stream"): OpenApiTypes.STR},
     )
     def post(self, request):
+        # 입력 데이터 검증 (질문 1~100자 제한 및 UUID 형태의 세션 ID 검증)
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
+        # 멀티턴 컨텍스트 구성을 위해 동일 세션 내 최근 30개 발화 이력 추출
         history = list(
             ChatMessage.objects.filter(
                 user=request.user,
@@ -503,13 +525,16 @@ class ChatStreamView(DjangoAuthenticatedView):
             .values("role", "content")
             .order_by("created_at")[:30]
         )
+
         def events():
+            # 비즈니스 서비스 호출: RAG 컨텍스트 결합, Gemini REST 통신 및 성능 로깅
             try:
                 answer = generate_chat_answer(
                     user=request.user,
                     message=data["message"],
                     history=history,
                 )
+                # 사용자 발화와 AI 생성 답변을 원자적 트랜잭션으로 동시 저장 (데이터 불일치 방어)
                 with transaction.atomic():
                     ChatMessage.objects.create(
                         user=request.user,
@@ -523,12 +548,16 @@ class ChatStreamView(DjangoAuthenticatedView):
                         role=ChatMessage.Role.ASSISTANT,
                         content=answer,
                     )
+                # SSE 이벤트 송출: 단일 청크 텍스트 전송 후 완료(done) 신호 발행
                 yield f"event: token\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
             except ChatbotError as error:
+                # LLM 장애 또는 유효성 실패 시 클라이언트에 표준 에러 이벤트 전송
                 yield f"event: error\ndata: {json.dumps({'error': str(error)}, ensure_ascii=False)}\n\n"
 
+        # 스트리밍 전용 HTTP 응답 객체 생성
         response = StreamingHttpResponse(events(), content_type="text/event-stream")
         response["Cache-Control"] = "no-cache"
+        # Nginx 등 리버스 프록시의 응답 버퍼링 강제 해제 (이벤트 즉시 플러시)
         response["X-Accel-Buffering"] = "no"
         return response

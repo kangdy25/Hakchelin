@@ -135,11 +135,12 @@ CELERY_BEAT_SCHEDULE = {
     # [식당 도메인] 미방문(노쇼) 예약 건 자동 처리 및 부분 환불 배치
     "process-reservation-no-shows": {
         "task": "reservations.tasks.process_no_shows",
-        "schedule": 900,
+        "schedule": 900, # 15분 주기
     },
+    # [챗봇 도메인] 보관 만료된 이전 대화 로그 데이터 일괄 정리 배치
     "delete-expired-chat-messages": {
         "task": "chatbot.tasks.delete_expired_chat_messages",
-        "schedule": 3600,
+        "schedule": 3600, # 1시간 주기
     },
 }
 
@@ -151,8 +152,11 @@ TOSS_PAYMENTS_CONFIRM_URL = os.getenv(
     "https://api.tosspayments.com/v1/payments/confirm",
 )
 
+# Gemini API 인증을 위한 비공개 API 키
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# # 챗봇 응답 생성에 사용할 대상 Gemini 모델 식별자
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# Gemini API HTTP 요청 제한 시간 (초 단위, float 변환, 타임아웃 강제)
 GEMINI_REQUEST_TIMEOUT_SECONDS = float(os.getenv("GEMINI_REQUEST_TIMEOUT_SECONDS", "45"))
 
 if not DEBUG:

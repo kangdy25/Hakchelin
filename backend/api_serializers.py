@@ -223,6 +223,12 @@ class PointPaymentResultSerializer(serializers.Serializer):
 
 
 class ChatMessageSerializer(serializers.ModelSerializer):
+    """
+    대화 이력 조회 전용 ModelSerializer.
+
+    클라이언트 렌더링에 필요한 발화 주체와 대화 본문만 직렬화하며,
+    과거 메시지 위변조를 방지하기 위해 전체 필드를 읽기 전용으로 제한합니다.
+    """
     class Meta:
         model = ChatMessage
         fields = ["role", "content"]
@@ -230,11 +236,23 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 
 
 class ChatRequestSerializer(serializers.Serializer):
+    """
+    AI 챗봇 질문 전송 및 스트리밍 요청 데이터 검증 DTO.
+
+    클라이언트로부터 사용자 질문 문자열과 대화 세션 식별자를 수신하여
+    질문 길이 제한(1~100자) 및 포맷 유효성을 검증합니다.
+    """
     message = serializers.CharField(min_length=1, max_length=100)
     conversation_id = serializers.UUIDField()
 
 
 class AiLogSerializer(serializers.ModelSerializer):
+    """
+    [관리자 전용] AI 추론 파이프라인 감사 로그 조회 전용 ModelSerializer.
+
+    추론 단계, 사용 모델, 응답 소요 시간(Latency), 에러 메시지와 요청자 요약 정보를 함께 직렬화하며,
+    감사 데이터의 무결성을 위해 전체 필드를 읽기 전용으로 제한합니다.
+    """
     users = UserSummarySerializer(source="user", read_only=True, allow_null=True)
 
     class Meta:
@@ -253,4 +271,10 @@ class AiLogSerializer(serializers.ModelSerializer):
 
 
 class CsrfReadySerializer(serializers.Serializer):
+    """
+    CSRF 쿠키 세팅 확인 응답 전용 스키마 DTO.
+
+    SPA/프론트엔드 초기화 시 브라우저에 'csrftoken' 쿠키가 정상 주입되었음을 알리는
+    상태 응답({"csrf": "ready"})의 직렬화 규격을 정의하며, drf-spectacular 문서화에 활용됩니다.
+    """
     csrf = serializers.CharField()
