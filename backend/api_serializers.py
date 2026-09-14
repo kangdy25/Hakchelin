@@ -104,6 +104,12 @@ class MenuWriteSerializer(serializers.ModelSerializer):
 
 
 class ReservationSerializer(serializers.ModelSerializer):
+    """
+    예약 상세 및 목록 조회(GET) 전용 ModelSerializer.
+
+    예약 당사자 요약 정보(UserSummarySerializer)와 연결된 식단 정보(MenuSummarySerializer)를
+    중첩 구조로 함께 직렬화하며, 확정된 예약의 임의 수정을 방지하기 위해 전체 필드를 읽기 전용으로 설정합니다.
+    """
     users = UserSummarySerializer(source="user", read_only=True)
     menus = serializers.SerializerMethodField()
 
@@ -139,6 +145,11 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class ReservationCreateSerializer(serializers.Serializer):
+    """
+    식단 메뉴 예약 요청(POST) 데이터 검증 시리얼라이저.
+
+    클라이언트로부터 식단 ID, 커스텀 옵션(JSON), 지불할 총금액을 전달받아 유효성을 검증합니다.
+    """
     menu_id = serializers.CharField(max_length=64)
     options = serializers.JSONField(default=dict)
     total_price = serializers.IntegerField(min_value=0)

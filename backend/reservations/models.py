@@ -6,6 +6,11 @@ from django.db.models import Q
 
 
 class Reservation(models.Model):
+    """
+    식당 메뉴 예약 및 식권 상태를 관리하는 모델.
+
+    예약 시점의 식단 스냅샷(menu_snapshot) 보존, 조건부 유니크 제약을 통한 동일 시간대 1인 1식 제한, 보증금 및 환불 상태 추적 기능을 제공합니다.
+    """
     class Status(models.TextChoices):
         RESERVED = "reserved", "Reserved"
         USED = "used", "Used"

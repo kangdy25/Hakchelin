@@ -216,11 +216,18 @@ class MenuDetailView(DjangoAuthenticatedView):
 
 
 class ReservationCreateView(DjangoAuthenticatedView):
+    """
+    식단 메뉴 신규 예약 신청 처리 뷰.
+
+    클라이언트로부터 메뉴 ID, 옵션, 예상 결제 총액을 수신하여 유효성을 검증한 뒤,
+    비즈니스 서비스 레이어(reserve_menu)를 호출해 원자적 결제 및 예약을 확정합니다.
+    """
     @extend_schema(request=ReservationCreateSerializer, responses={201: ReservationSerializer})
     def post(self, request):
         serializer = ReservationCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
         try:
             reservation = reserve_menu(
                 user=request.user,
@@ -230,11 +237,17 @@ class ReservationCreateView(DjangoAuthenticatedView):
             )
         except (ReservationError, Menu.DoesNotExist) as error:
             raise exceptions.ValidationError(str(error)) from error
+        
         reservation = Reservation.objects.select_related("user", "menu").get(id=reservation.id)
         return Response(ReservationSerializer(reservation).data, status=status.HTTP_201_CREATED)
 
 
 class MyReservationsView(DjangoAuthenticatedView):
+    """
+    현재 로그인된 사용자의 본인 식권/예약 내역 전체 조회 뷰.
+
+    세션 인증을 필수로 요구하며, 사용자 본인의 예약 목록을 최신순으로 반환합니다.
+    """
     @extend_schema(responses=ReservationSerializer(many=True))
     def get(self, request):
         queryset = Reservation.objects.filter(user=request.user).select_related("user", "menu")
@@ -242,17 +255,28 @@ class MyReservationsView(DjangoAuthenticatedView):
 
 
 class ReservationCancelView(DjangoAuthenticatedView):
+    """
+    사용자가 본인의 유효한 예약을 직접 취소하는 뷰.
+
+    예약 마감 시간 전/후 여부에 따라 보증금 공제 여부를 차등 적용하는 환불 정책을 수행합니다.
+    """
     @extend_schema(request=None, responses=ReservationSerializer)
     def post(self, request, reservation_id):
         try:
             reservation = cancel_reservation(user=request.user, reservation_id=reservation_id)
         except (ReservationError, Reservation.DoesNotExist) as error:
             raise exceptions.ValidationError(str(error)) from error
+        
         reservation = Reservation.objects.select_related("user", "menu").get(id=reservation.id)
         return Response(ReservationSerializer(reservation).data)
 
 
 class AdminReservationActionView(DjangoAuthenticatedView):
+    """
+    [관리자 전용] 특정 예약에 대한 상태 전이 액션(식권 사용 승인 또는 관리자 강제 취소)을 처리하는 뷰.
+
+    URL의 action 파라미터에 따라 'use' 또는 'cancel'을 분기 실행합니다.
+    """
     permission_classes = [AdminPermission]
 
     @extend_schema(request=None, responses=ReservationSerializer)
@@ -266,6 +290,7 @@ class AdminReservationActionView(DjangoAuthenticatedView):
                 raise exceptions.NotFound()
         except (ReservationError, Reservation.DoesNotExist) as error:
             raise exceptions.ValidationError(str(error)) from error
+        
         reservation = Reservation.objects.select_related("user", "menu").get(id=reservation.id)
         return Response(ReservationSerializer(reservation).data)
 
@@ -363,6 +388,11 @@ class AdminUsersView(DjangoAuthenticatedView):
 
 
 class AdminReservationsView(DjangoAuthenticatedView):
+    """
+    [관리자 전용] 시스템 전체 예약 현황 목록 조회 뷰.
+
+    식당 관리자가 예약 현황 및 노쇼/취소 통계를 모니터링할 수 있도록 전체 데이터를 최신순으로 제공합니다.
+    """
     permission_classes = [AdminPermission]
 
     @extend_schema(responses=ReservationSerializer(many=True))
