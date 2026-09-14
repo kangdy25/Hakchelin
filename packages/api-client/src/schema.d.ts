@@ -259,8 +259,8 @@ export interface paths {
          * @description AI 어시스턴트의 SSE 응답 전달 및 대화 저장 처리 뷰.
          *
          *     클라이언트의 질문을 최근 대화 맥락과 함께 Gemini LLM 서비스에 전달하고,
-         *     완성된 답변을 SSE(text/event-stream)의 token/done 이벤트로 전송합니다.
-         *     현재 Gemini 호출은 동기식이므로 token 이벤트에는 완성된 답변이 한 번에 담깁니다.
+         *     생성되는 답변 조각을 SSE(text/event-stream)의 token 이벤트로 즉시 전송하고,
+         *     스트림이 정상적으로 끝나면 완성된 답변을 done 이벤트로 전송합니다.
          *     사용자 발화와 AI 응답은 단일 원자적 트랜잭션 내에서 ChatMessage로 영구 보관됩니다.
          */
         post: operations["chat_stream_create"];

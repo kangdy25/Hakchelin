@@ -18,4 +18,6 @@ COPY --chown=app:app . .
 USER app
 
 EXPOSE 8000
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "1", "--access-logfile", "-"]
+# 스트리밍 요청이 동기 WSGI worker 하나를 독점하지 않도록 gthread를 사용하고,
+# Gemini의 최대 요청 시간보다 긴 worker timeout을 둔다.
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "--timeout", "90", "--access-logfile", "-"]

@@ -36,7 +36,7 @@ from api_serializers import (
     UserSerializer,
 )
 from chatbot.models import AiLog, ChatMessage
-from chatbot.services import ChatbotError, generate_chat_answer
+from chatbot.services import ChatbotError, stream_chat_answer
 from meals.models import Menu
 from payments.gateways import confirm_toss_payment
 from payments.models import PointOrder
@@ -517,8 +517,8 @@ class ChatStreamView(DjangoAuthenticatedView):
     AI 어시스턴트의 SSE 응답 전달 및 대화 저장 처리 뷰.
 
     클라이언트의 질문을 최근 대화 맥락과 함께 Gemini LLM 서비스에 전달하고,
-    완성된 답변을 SSE(text/event-stream)의 token/done 이벤트로 전송합니다.
-    현재 Gemini 호출은 동기식이므로 token 이벤트에는 완성된 답변이 한 번에 담깁니다.
+    생성되는 답변 조각을 SSE(text/event-stream)의 token 이벤트로 즉시 전송하고,
+    스트림이 정상적으로 끝나면 완성된 답변을 done 이벤트로 전송합니다.
     사용자 발화와 AI 응답은 단일 원자적 트랜잭션 내에서 ChatMessage로 영구 보관됩니다.
     """
     @extend_schema(
@@ -538,14 +538,19 @@ class ChatStreamView(DjangoAuthenticatedView):
         )
 
         def events():
-            # 비즈니스 서비스 호출: RAG 컨텍스트 결합, Gemini REST 통신 및 성능 로깅
             try:
-                answer = generate_chat_answer(
-                    user=request.user,
-                    message=data["message"],
-                    history=history,
-                )
-                # 사용자 발화와 AI 생성 답변을 원자적 트랜잭션으로 동시 저장 (데이터 불일치 방어)
+                # 각 조각은 수신 즉시 브라우저에 전달하되, 
+                # 정상 완료 후 저장할 수 있도록 동일한 조각을 서버에서도 누적한다.
+                answer_parts = []
+                for text in stream_chat_answer(
+                    user=request.user, message=data["message"], history=history
+                ):
+                    answer_parts.append(text)
+                    yield f"event: token\ndata: {json.dumps({'text': text}, ensure_ascii=False)}\n\n"
+
+                answer = "".join(answer_parts).strip()
+                # Gemini 스트림을 끝까지 정상적으로 소비한 뒤에만 두 메시지를 저장한다.
+                # 중간 오류나 연결 종료 시에는 이 블록에 도달하지 않아 부분 대화가 남지 않는다.
                 with transaction.atomic():
                     ChatMessage.objects.create(
                         user=request.user,
@@ -559,11 +564,9 @@ class ChatStreamView(DjangoAuthenticatedView):
                         role=ChatMessage.Role.ASSISTANT,
                         content=answer,
                     )
-                # SSE 이벤트 송출: 단일 청크 텍스트 전송 후 완료(done) 신호 발행
-                yield f"event: token\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
+                # done에는 완성본을 넣어 프런트가 누락된 마지막 조각을 최종 보정할 수 있게 한다.
                 yield f"event: done\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
             except ChatbotError as error:
-                # LLM 장애 또는 유효성 실패 시 클라이언트에 표준 에러 이벤트 전송
                 yield f"event: error\ndata: {json.dumps({'message': str(error)}, ensure_ascii=False)}\n\n"
 
         # 스트리밍 전용 HTTP 응답 객체 생성

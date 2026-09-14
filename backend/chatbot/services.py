@@ -1,3 +1,5 @@
+import json
+from collections.abc import Iterator
 from time import monotonic
 
 import httpx
@@ -46,21 +48,14 @@ def _user_context(user) -> str:
     )
 
 
-def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
+def stream_chat_answer(*, user, message: str, history: list[dict]) -> Iterator[str]:
     """
-    사용자 질의 및 이전 대화 내역을 바탕으로 Google Gemini REST API를 호출하여 답변을 생성합니다.
+    사용자 질의와 이전 대화 내역을 Gemini에 전달하고 생성되는 텍스트 조각을 반환합니다.
 
-    사용자 맞춤 DB 컨텍스트를 시스템 프롬프트로 주입하며, 왕복 레이턴시와
-    성공/실패 여부를 AiLog 테이블에 기록합니다.
+    사용자 맞춤 DB 컨텍스트를 시스템 프롬프트로 주입하고 스트림 전체의 지연 시간과
+    성공 또는 실패 결과를 AiLog 테이블에 한 건 기록합니다.
     """
-    if not settings.GEMINI_API_KEY:
-        # 외부 호출을 시도하지 않고 클라이언트가 처리할 수 있는 서비스 오류로 변환
-        raise ChatbotError("AI 서비스 연동 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.")
-
-    # 정확한 네트워크/추론 지연 시간 계측 시작 (시스템 시계 변동 영향이 없는 monotonic 사용)
     started_at = monotonic()
-    # 이전 대화 기록을 Gemini API의 메시지 규격으로 변환 
-    # 토큰 절약 및 컨텍스트 길이 초과 방지를 위해 최근 10개 턴만 전송
     contents = [
         {
             "role": "user" if item["role"] == "user" else "model",
@@ -68,35 +63,61 @@ def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
         }
         for item in history[-10:]
     ]
-    # 사용자의 이번 턴 신규 메시지 추가
     contents.append({"role": "user", "parts": [{"text": message}]})
 
-    # 페르소나 및 데이터 한정 가드레일 프롬프트 구성 (Grounding)
     prompt = (
         "학슐랭의 한국어 식사 도우미다. 제공된 사용자 데이터 안에서만 정확하고 간결하게 답한다. "
         "다른 사용자의 정보는 추측하지 않는다.\n\n"
         f"{_user_context(user)}"
     )
     try:
-        # Gemini generateContent 엔드포인트 동기 HTTP POST 호출
-        response = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent",
-            params={"key": settings.GEMINI_API_KEY},
+        # 설정 누락도 외부 API 장애와 동일하게 실패 로그 한 건으로 추적한다.
+        if not settings.GEMINI_API_KEY:
+            raise ChatbotError("AI 서비스 연동 설정이 완료되지 않았습니다.")
+
+        has_text = False
+        # Gemini REST 스트리밍은 응답을 SSE로 받기 위해 alt=sse가 필요하다.
+        # API 키는 URL이나 로그에 노출될 가능성을 줄이기 위해 전용 헤더로 전달한다.
+        with httpx.stream(
+            "POST",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:streamGenerateContent",
+            params={"alt": "sse"},
+            headers={"x-goog-api-key": settings.GEMINI_API_KEY},
             json={
                 "systemInstruction": {"parts": [{"text": prompt}]},
                 "contents": contents,
             },
             timeout=settings.GEMINI_REQUEST_TIMEOUT_SECONDS,
-        )
-        result = response.json()
-        # HTTP 에러 상태 코드 응답 시 상세 실패 메시지 추출
-        if response.is_error:
-            error_message = result.get("error", {}).get("message") if isinstance(result, dict) else None
-            raise ChatbotError(error_message or "Gemini 응답 생성에 실패했습니다.")
-        # Gemini 응답 구조(candidates -> content -> parts -> text) 파싱 및 양끝 공백 제거
-        answer = result["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except (ChatbotError, httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as error:
-        # 예외 발생 시 관측성(Observability) 실패 로그 적재 (502 Bad Gateway 기준)
+        ) as response:
+            if response.is_error:
+                # 스트리밍 응답은 본문을 명시적으로 읽은 뒤에만 JSON 오류 내용을 파싱할 수 있다.
+                response.read()
+                result = response.json()
+                error_message = result.get("error", {}).get("message") if isinstance(result, dict) else None
+                raise ChatbotError(error_message or "Gemini 응답 생성에 실패했습니다.")
+
+            # Gemini가 보내는 각 SSE 레코드의 `data:` JSON에서 텍스트 조각만 추출한다.
+            # 메타데이터만 담긴 레코드나 빈 줄은 사용자에게 token 이벤트로 전달하지 않는다.
+            for line in response.iter_lines():
+                if not line.startswith("data:"):
+                    continue
+                raw_data = line.removeprefix("data:").strip()
+                if not raw_data:
+                    continue
+                result = json.loads(raw_data)
+                parts = result["candidates"][0]["content"].get("parts", [])
+                for part in parts:
+                    text = part.get("text")
+                    if not isinstance(text, str) or not text:
+                        continue
+                    has_text = has_text or bool(text.strip())
+                    yield text
+
+        if not has_text:
+            raise ChatbotError("Gemini가 비어 있는 응답을 반환했습니다.")
+    except (AttributeError, ChatbotError, httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as error:
+        # 이미 일부 조각이 전달된 뒤라도 View가 동일한 error 이벤트로 마무리할 수 있도록
+        # 네트워크 오류와 응답 형식 오류를 하나의 도메인 예외로 변환한다.
         AiLog.objects.create(
             user=user,
             stage=AiLog.Stage.MAIN_CHAT,
@@ -107,7 +128,8 @@ def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
         )
         raise ChatbotError("챗봇 응답을 생성하지 못했습니다.") from error
 
-    # 추론 성공 시 지연 시간 및 200 상태 코드를 AiLog에 기록
+    # generator가 끝까지 소비된 경우에만 성공으로 기록한다. 클라이언트가 중간에
+    # 연결을 끊어 generator가 닫히면 이 지점에 도달하지 않는다.
     AiLog.objects.create(
         user=user,
         stage=AiLog.Stage.MAIN_CHAT,
@@ -115,4 +137,3 @@ def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
         latency_ms=int((monotonic() - started_at) * 1000),
         status_code=200,
     )
-    return answer

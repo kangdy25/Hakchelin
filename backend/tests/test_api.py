@@ -1,13 +1,14 @@
 from datetime import timedelta
 
+import httpx
 import pytest
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from chatbot.models import ChatMessage
-from chatbot.services import ChatbotError, generate_chat_answer
+from chatbot.models import AiLog, ChatMessage
+from chatbot.services import ChatbotError, stream_chat_answer
 from chatbot.tasks import delete_expired_chat_messages
 from meals.models import Menu
 from reservations.models import Reservation
@@ -42,6 +43,30 @@ def create_menu():
         meal_time="12:00",
         reservation_deadline=timezone.now() + timedelta(hours=1),
     )
+
+
+class FakeGeminiStreamResponse:
+    """실제 네트워크 없이 httpx 스트리밍 응답 계약을 재현하는 테스트 대역."""
+
+    def __init__(self, *, lines=(), is_error=False, payload=None):
+        self.lines = lines
+        self.is_error = is_error
+        self.payload = payload or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self):
+        return b""
+
+    def json(self):
+        return self.payload
+
+    def iter_lines(self):
+        yield from self.lines
 
 
 @pytest.mark.django_db
@@ -178,7 +203,7 @@ def test_chat_sse_contract_and_conversation_isolation(monkeypatch):
         student_id="20260001",
         name="학생",
     )
-    monkeypatch.setattr("api_views.generate_chat_answer", lambda **_kwargs: "테스트 답변")
+    monkeypatch.setattr("api_views.stream_chat_answer", lambda **_kwargs: iter(["테스트 ", "답변"]))
     client, csrf_token = login_client(user)
     conversation_id = "05f35575-84df-4fef-a7f7-651899d3f760"
     response = client.post(
@@ -191,8 +216,10 @@ def test_chat_sse_contract_and_conversation_isolation(monkeypatch):
 
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/event-stream")
+    assert body.count("event: token") == 2
     assert body.index("event: token") < body.index("event: done")
     assert ChatMessage.objects.filter(user=user, conversation_id=conversation_id).count() == 2
+    assert ChatMessage.objects.get(user=user, role=ChatMessage.Role.ASSISTANT).content == "테스트 답변"
 
     history = client.get(f"/api/chat/{conversation_id}/")
     assert [item["role"] for item in history.json()] == ["user", "assistant"]
@@ -236,7 +263,7 @@ def test_menu_list_rejects_invalid_from_date():
     GEMINI_MODEL="gemini-3.6-flash",
     GEMINI_REQUEST_TIMEOUT_SECONDS=45,
 )
-def test_chat_uses_supported_gemini_model_without_deprecated_sampling_parameters(monkeypatch):
+def test_chat_streams_gemini_chunks_and_records_success(monkeypatch):
     user = User.objects.create_user(
         "student@example.com",
         "correct-password",
@@ -245,28 +272,33 @@ def test_chat_uses_supported_gemini_model_without_deprecated_sampling_parameters
     )
     request_payload = {}
 
-    class GeminiResponse:
-        is_error = False
+    response = FakeGeminiStreamResponse(
+        lines=[
+            'data: {"candidates":[{"content":{"parts":[{"text":"답"}]}}]}',
+            'data: {"candidates":[{"content":{"parts":[{"text":"변"}]}}]}',
+        ]
+    )
 
-        @staticmethod
-        def json():
-            return {"candidates": [{"content": {"parts": [{"text": "답변"}]}}]}
-
-    def fake_post(url, **kwargs):
+    def fake_stream(method, url, **kwargs):
+        request_payload["method"] = method
         request_payload["url"] = url
         request_payload.update(kwargs)
-        return GeminiResponse()
+        return response
 
-    monkeypatch.setattr("chatbot.services.httpx.post", fake_post)
+    monkeypatch.setattr("chatbot.services.httpx.stream", fake_stream)
 
-    assert generate_chat_answer(user=user, message="오늘 메뉴 알려줘", history=[]) == "답변"
-    assert request_payload["url"].endswith("/models/gemini-3.6-flash:generateContent")
+    assert list(stream_chat_answer(user=user, message="오늘 메뉴 알려줘", history=[])) == ["답", "변"]
+    assert request_payload["method"] == "POST"
+    assert request_payload["url"].endswith("/models/gemini-3.6-flash:streamGenerateContent")
+    assert request_payload["params"] == {"alt": "sse"}
+    assert request_payload["headers"] == {"x-goog-api-key": "test-key"}
     assert "generationConfig" not in request_payload["json"]
     assert request_payload["timeout"] == 45
+    assert AiLog.objects.filter(user=user, status_code=200).count() == 1
 
 
 @pytest.mark.django_db
-def test_chat_timeout_does_not_persist_an_unpaired_user_message(monkeypatch):
+def test_chat_midstream_failure_does_not_persist_an_unpaired_message(monkeypatch):
     user = User.objects.create_user(
         "student@example.com",
         "correct-password",
@@ -274,10 +306,12 @@ def test_chat_timeout_does_not_persist_an_unpaired_user_message(monkeypatch):
         name="학생",
     )
     client, csrf_token = login_client(user)
-    monkeypatch.setattr(
-        "api_views.generate_chat_answer",
-        lambda **_kwargs: (_ for _ in ()).throw(ChatbotError("챗봇 응답을 생성하지 못했습니다.")),
-    )
+
+    def failing_stream(**_kwargs):
+        yield "부분 답변"
+        raise ChatbotError("챗봇 응답을 생성하지 못했습니다.")
+
+    monkeypatch.setattr("api_views.stream_chat_answer", failing_stream)
 
     response = client.post(
         "/api/chat/stream/",
@@ -287,9 +321,99 @@ def test_chat_timeout_does_not_persist_an_unpaired_user_message(monkeypatch):
     )
 
     body = b"".join(response.streaming_content).decode()
+    assert body.index("event: token") < body.index("event: error")
+    assert "event: done" not in body
     assert "event: error" in body
     assert 'data: {"message": "챗봇 응답을 생성하지 못했습니다."}' in body
     assert not ChatMessage.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+def test_chat_client_disconnect_does_not_persist_partial_answer(monkeypatch):
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+    monkeypatch.setattr("api_views.stream_chat_answer", lambda **_kwargs: iter(["첫 조각", "두 번째 조각"]))
+    client, csrf_token = login_client(user)
+    response = client.post(
+        "/api/chat/stream/",
+        {"message": "질문", "conversation_id": "05f35575-84df-4fef-a7f7-651899d3f760"},
+        format="json",
+        HTTP_X_CSRFTOKEN=csrf_token,
+    )
+
+    iterator = response.streaming_content
+    assert b"event: token" in next(iterator)
+    # 첫 조각만 받은 상태에서 브라우저 연결이 종료되는 상황을 재현한다.
+    response.close()
+
+    assert not ChatMessage.objects.filter(user=user).exists()
+
+
+@pytest.mark.django_db
+@override_settings(GEMINI_API_KEY="")
+def test_chat_stream_requires_gemini_api_key():
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+
+    with pytest.raises(ChatbotError, match="챗봇 응답을 생성하지 못했습니다"):
+        list(stream_chat_answer(user=user, message="질문", history=[]))
+
+    assert AiLog.objects.filter(user=user, status_code=502).count() == 1
+
+
+@pytest.mark.django_db
+@override_settings(GEMINI_API_KEY="test-key")
+@pytest.mark.parametrize(
+    "response",
+    [
+        FakeGeminiStreamResponse(is_error=True, payload={"error": {"message": "요청 실패"}}),
+        FakeGeminiStreamResponse(lines=["data: not-json"]),
+        FakeGeminiStreamResponse(lines=[]),
+    ],
+    ids=["http-error", "invalid-json", "empty-response"],
+)
+def test_chat_stream_converts_gemini_failures_to_domain_error(monkeypatch, response):
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+    monkeypatch.setattr("chatbot.services.httpx.stream", lambda *_args, **_kwargs: response)
+
+    with pytest.raises(ChatbotError, match="챗봇 응답을 생성하지 못했습니다"):
+        list(stream_chat_answer(user=user, message="질문", history=[]))
+
+    assert AiLog.objects.filter(user=user, status_code=502).count() == 1
+
+
+@pytest.mark.django_db
+@override_settings(GEMINI_API_KEY="test-key")
+def test_chat_stream_converts_network_failure_to_domain_error(monkeypatch):
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+
+    def fail_to_connect(*_args, **_kwargs):
+        raise httpx.ConnectError("network unavailable")
+
+    monkeypatch.setattr("chatbot.services.httpx.stream", fail_to_connect)
+
+    with pytest.raises(ChatbotError, match="챗봇 응답을 생성하지 못했습니다"):
+        list(stream_chat_answer(user=user, message="질문", history=[]))
+
+    assert AiLog.objects.filter(user=user, status_code=502).count() == 1
 
 
 @pytest.mark.django_db
