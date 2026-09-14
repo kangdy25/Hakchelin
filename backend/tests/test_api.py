@@ -328,7 +328,7 @@ def test_chat_midstream_failure_does_not_persist_an_unpaired_message(monkeypatch
     assert not ChatMessage.objects.filter(user=user).exists()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_chat_client_disconnect_does_not_persist_partial_answer(monkeypatch):
     user = User.objects.create_user(
         "student@example.com",
