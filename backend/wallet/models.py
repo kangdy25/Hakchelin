@@ -5,6 +5,7 @@ from django.db import models
 
 
 class PointTransaction(models.Model):
+    """사용자의 포인트 변동(충전, 차감, 환불) 내역을 기록하는 모델"""
     class Type(models.TextChoices):
         CHARGE = "charge", "Charge"
         DEDUCT = "deduct", "Deduct"

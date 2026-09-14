@@ -271,6 +271,11 @@ class AdminReservationActionView(DjangoAuthenticatedView):
 
 
 class MyTransactionsView(DjangoAuthenticatedView):
+    """
+    현재 로그인한 사용자의 포인트 변동 내역(충전/차감/기부 등) 조회 뷰.
+
+    세션 인증을 필수로 요구하며 본인의 거래 기록만 역순(최신순)으로 제공합니다.
+    """
     @extend_schema(responses=PointTransactionSerializer(many=True))
     def get(self, request):
         queryset = PointTransaction.objects.filter(user=request.user).select_related("user")
@@ -278,6 +283,11 @@ class MyTransactionsView(DjangoAuthenticatedView):
 
 
 class DonationView(DjangoAuthenticatedView):
+    """
+    보유 포인트를 사용해 기부를 수행하는 뷰.
+
+    지갑 서비스 레이어(donate_points)를 호출하여 비관적 락 기반의 원자적 차감을 실행합니다.
+    """
     @extend_schema(request=AmountSerializer, responses={201: PointTransactionSerializer})
     def post(self, request):
         serializer = AmountSerializer(data=request.data)
@@ -362,6 +372,7 @@ class AdminReservationsView(DjangoAuthenticatedView):
 
 
 class AdminTransactionsView(DjangoAuthenticatedView):
+    """[관리자 전용] 시스템 전체 포인트 거래 내역 조회 뷰."""
     permission_classes = [AdminPermission]
 
     @extend_schema(responses=PointTransactionSerializer(many=True))

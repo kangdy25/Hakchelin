@@ -145,6 +145,12 @@ class ReservationCreateSerializer(serializers.Serializer):
 
 
 class PointTransactionSerializer(serializers.ModelSerializer):
+    """
+    포인트 거래(변동) 내역 조회 전용 ModelSerializer.
+
+    사용자 정보를 UserSummarySerializer를 통해 중첩 요약 객체로 직렬화하며,
+    거래내역 데이터의 위변조 방지를 위해 전체 필드를 읽기 전용(read_only)으로 설정합니다.
+    """
     users = UserSummarySerializer(source="user", read_only=True)
 
     class Meta:
@@ -154,10 +160,16 @@ class PointTransactionSerializer(serializers.ModelSerializer):
 
 
 class AmountSerializer(serializers.Serializer):
+    """포인트 기부 또는 결제 주문 시 단일 금액(amount) 입력을 검증하는 기본 DTO"""
     amount = serializers.IntegerField()
 
 
 class AdminPointSerializer(AmountSerializer):
+    """
+    [관리자 전용] 사용자 포인트 수동 지급/차감 처리 시리얼라이저.
+
+    AmountSerializer를 상속받아 금액 필드를 재사용하며, 감사 추적을 위해 필수적인 사유 설명 필드를 추가합니다.
+    """
     description = serializers.CharField(max_length=255)
 
 
