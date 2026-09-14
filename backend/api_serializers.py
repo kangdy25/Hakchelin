@@ -103,6 +103,12 @@ class MenuWriteSerializer(serializers.ModelSerializer):
         exclude = ["id", "created_at"]
 
 
+class MenuQuerySerializer(serializers.Serializer):
+    """메뉴 목록의 활성화 여부와 조회 시작일 필터를 검증하는 쿼리 DTO."""
+    active_only = serializers.BooleanField(required=False, default=False)
+    from_date = serializers.DateField(required=False)
+
+
 class ReservationSerializer(serializers.ModelSerializer):
     """
     예약 상세 및 목록 조회(GET) 전용 ModelSerializer.

@@ -236,7 +236,7 @@ uv --directory backend sync --all-groups
 | `DATABASE_URL` | 비우면 SQLite 사용, Neon 사용 시 SSL pooler URL |
 | `DJANGO_SECRET_KEY` | Django 세션 서명 키 |
 | `TOSS_PAYMENTS_SECRET_KEY` | Toss 테스트 결제 승인에 필요 |
-| `GEMINI_API_KEY` | 실제 Gemini 응답에 필요. 없으면 안전한 fallback 응답 |
+| `GEMINI_API_KEY` | 실제 Gemini 응답에 필요. 없으면 챗봇이 서비스 오류 이벤트를 반환 |
 
 Nuxt API 주소는 기본적으로 `http://localhost:8000`입니다. 다른 API 주소를 쓸 때만 프런트엔드 실행 환경에 설정합니다.
 

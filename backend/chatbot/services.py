@@ -54,7 +54,7 @@ def generate_chat_answer(*, user, message: str, history: list[dict]) -> str:
     성공/실패 여부를 AiLog 테이블에 기록합니다.
     """
     if not settings.GEMINI_API_KEY:
-        # API 키 미설정 시 로컬 개발 및 테스트를 위한 폴백(Mock) 응답 반환
+        # 외부 호출을 시도하지 않고 클라이언트가 처리할 수 있는 서비스 오류로 변환
         raise ChatbotError("AI 서비스 연동 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.")
 
     # 정확한 네트워크/추론 지연 시간 계측 시작 (시스템 시계 변동 영향이 없는 monotonic 사용)

@@ -171,13 +171,14 @@ def test_admin_api_enforces_role_and_ticket_actions():
 
 
 @pytest.mark.django_db
-def test_chat_sse_contract_and_conversation_isolation():
+def test_chat_sse_contract_and_conversation_isolation(monkeypatch):
     user = User.objects.create_user(
         "student@example.com",
         "correct-password",
         student_id="20260001",
         name="학생",
     )
+    monkeypatch.setattr("api_views.generate_chat_answer", lambda **_kwargs: "테스트 답변")
     client, csrf_token = login_client(user)
     conversation_id = "05f35575-84df-4fef-a7f7-651899d3f760"
     response = client.post(
@@ -195,6 +196,38 @@ def test_chat_sse_contract_and_conversation_isolation():
 
     history = client.get(f"/api/chat/{conversation_id}/")
     assert [item["role"] for item in history.json()] == ["user", "assistant"]
+
+
+@pytest.mark.django_db
+def test_chat_history_returns_latest_thirty_messages_in_chronological_order():
+    user = User.objects.create_user(
+        "student@example.com",
+        "correct-password",
+        student_id="20260001",
+        name="학생",
+    )
+    conversation_id = "05f35575-84df-4fef-a7f7-651899d3f760"
+    for index in range(35):
+        ChatMessage.objects.create(
+            user=user,
+            conversation_id=conversation_id,
+            role=ChatMessage.Role.USER,
+            content=f"메시지 {index}",
+        )
+
+    client, _ = login_client(user)
+    response = client.get(f"/api/chat/{conversation_id}/")
+
+    assert response.status_code == 200
+    assert [item["content"] for item in response.json()] == [f"메시지 {index}" for index in range(5, 35)]
+
+
+@pytest.mark.django_db
+def test_menu_list_rejects_invalid_from_date():
+    response = APIClient().get("/api/menus/", {"from_date": "not-a-date"})
+
+    assert response.status_code == 400
+    assert "from_date" in response.json()
 
 
 @pytest.mark.django_db
@@ -253,7 +286,9 @@ def test_chat_timeout_does_not_persist_an_unpaired_user_message(monkeypatch):
         HTTP_X_CSRFTOKEN=csrf_token,
     )
 
-    assert "event: error" in b"".join(response.streaming_content).decode()
+    body = b"".join(response.streaming_content).decode()
+    assert "event: error" in body
+    assert 'data: {"message": "챗봇 응답을 생성하지 못했습니다."}' in body
     assert not ChatMessage.objects.filter(user=user).exists()
 
 

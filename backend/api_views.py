@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, permissions, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
@@ -23,6 +23,7 @@ from api_serializers import (
     ChatRequestSerializer,
     CsrfReadySerializer,
     LoginSerializer,
+    MenuQuerySerializer,
     MenuSerializer,
     MenuWriteSerializer,
     PointOrderSerializer,
@@ -169,18 +170,19 @@ class MenuListCreateView(APIView):
         return [permissions.AllowAny()] if self.request.method == "GET" else [AdminPermission()]
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("active_only", OpenApiTypes.BOOL),
-            OpenApiParameter("from_date", OpenApiTypes.DATE),
-        ],
+        parameters=[MenuQuerySerializer],
         responses=MenuSerializer(many=True),
     )
     def get(self, request):
+        query_serializer = MenuQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+        filters = query_serializer.validated_data
+
         queryset = Menu.objects.order_by("meal_date", "meal_time")
-        if request.query_params.get("active_only") == "true":
+        if filters["active_only"]:
             queryset = queryset.filter(is_active=True)
-        if request.query_params.get("from_date"):
-            queryset = queryset.filter(meal_date__gte=request.query_params["from_date"])
+        if from_date := filters.get("from_date"):
+            queryset = queryset.filter(meal_date__gte=from_date)
         return Response(MenuSerializer(queryset, many=True).data)
 
     @extend_schema(request=MenuWriteSerializer, responses={201: MenuSerializer})
@@ -482,6 +484,18 @@ class AdminUserRoleView(DjangoAuthenticatedView):
         return Response(UserSerializer(user).data)
 
 
+def _recent_chat_history(*, user, conversation_id) -> list[dict]:
+    """최근 대화 30개를 선택한 뒤 대화가 생성된 순서로 반환합니다."""
+
+    history = list(
+        ChatMessage.objects.filter(user=user, conversation_id=conversation_id)
+        .values("role", "content")
+        .order_by("-created_at", "-id")[:30]
+    )
+    history.reverse()
+    return history
+
+
 class ChatHistoryView(DjangoAuthenticatedView):
     """
     특정 대화 세션의 이전 메시지 이력 조회 뷰.
@@ -491,19 +505,20 @@ class ChatHistoryView(DjangoAuthenticatedView):
     """
     @extend_schema(responses=ChatMessageSerializer(many=True))
     def get(self, request, conversation_id):
-        queryset = ChatMessage.objects.filter(
+        history = _recent_chat_history(
             user=request.user,
             conversation_id=conversation_id,
-        ).order_by("created_at")[:30]
-        return Response(ChatMessageSerializer(queryset, many=True).data)
+        )
+        return Response(ChatMessageSerializer(history, many=True).data)
 
 
 class ChatStreamView(DjangoAuthenticatedView):
     """
-    AI 어시스턴트 실시간 응답 스트리밍 및 대화 저장 처리 뷰.
+    AI 어시스턴트의 SSE 응답 전달 및 대화 저장 처리 뷰.
 
-    클라이언트의 질문을 수신하여 최근 대화 맥락과 함께 Gemini LLM 서비스를 호출하고,
-    SSE(text/event-stream) 규격으로 토큰/완료/에러 이벤트를 실시간 송출합니다.
+    클라이언트의 질문을 최근 대화 맥락과 함께 Gemini LLM 서비스에 전달하고,
+    완성된 답변을 SSE(text/event-stream)의 token/done 이벤트로 전송합니다.
+    현재 Gemini 호출은 동기식이므로 token 이벤트에는 완성된 답변이 한 번에 담깁니다.
     사용자 발화와 AI 응답은 단일 원자적 트랜잭션 내에서 ChatMessage로 영구 보관됩니다.
     """
     @extend_schema(
@@ -517,13 +532,9 @@ class ChatStreamView(DjangoAuthenticatedView):
         data = serializer.validated_data
 
         # 멀티턴 컨텍스트 구성을 위해 동일 세션 내 최근 30개 발화 이력 추출
-        history = list(
-            ChatMessage.objects.filter(
-                user=request.user,
-                conversation_id=data["conversation_id"],
-            )
-            .values("role", "content")
-            .order_by("created_at")[:30]
+        history = _recent_chat_history(
+            user=request.user,
+            conversation_id=data["conversation_id"],
         )
 
         def events():
@@ -553,7 +564,7 @@ class ChatStreamView(DjangoAuthenticatedView):
                 yield f"event: done\ndata: {json.dumps({'text': answer}, ensure_ascii=False)}\n\n"
             except ChatbotError as error:
                 # LLM 장애 또는 유효성 실패 시 클라이언트에 표준 에러 이벤트 전송
-                yield f"event: error\ndata: {json.dumps({'error': str(error)}, ensure_ascii=False)}\n\n"
+                yield f"event: error\ndata: {json.dumps({'message': str(error)}, ensure_ascii=False)}\n\n"
 
         # 스트리밍 전용 HTTP 응답 객체 생성
         response = StreamingHttpResponse(events(), content_type="text/event-stream")
